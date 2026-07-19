@@ -1,0 +1,21 @@
+command:
+  - "python"
+  - "-m"
+  - "uvicorn"
+  - "app:app"
+  - "--host"
+  - "0.0.0.0"
+  - "--port"
+  - "8000"
+
+env:
+  - name: SQL_WAREHOUSE_ID
+    value: "ae8786c45629ac32"
+  - name: DASHBOARD_ID
+    value: "01f1822e23281b84862d425ca9ef6f5d"
+  - name: GENIE_SPACE_ID
+    value: "01f1822e58ea1cf89d0499b4bde5f28b"
+  - name: CATALOG
+    value: "wildlife_s2s_catalog"
+  - name: SCHEMA
+    value: "player_feedback"

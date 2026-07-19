@@ -1,0 +1,13 @@
+# ---------------------------------------------------------------------------
+# AI/BI Dashboard (Lakeview) — Player Feedback
+# FONTE DE VERDADE: src/dashboard/player_feedback.lvdash.json — a versão final
+# foi editada diretamente no workspace e puxada de volta via API. O gerador
+# scripts/build_dashboard.py está DEFASADO e NÃO deve ser usado para
+# regenerar/sobrescrever esse JSON (ver aviso no topo do script).
+# ---------------------------------------------------------------------------
+resources:
+  dashboards:
+    pf_dashboard:
+      display_name: "Wildlife — Player Feedback Analysis"
+      warehouse_id: ${var.warehouse_id}
+      file_path: ../src/dashboard/player_feedback.lvdash.json
