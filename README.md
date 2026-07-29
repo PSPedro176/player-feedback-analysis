@@ -35,25 +35,26 @@ Google Play Store ──(google-play-scraper)──▶ reviews_raw (bronze, appe
 - **App** (`app/`) — FastAPI + React/Vite/Tailwind; identidade visual Wildlife (editorial
   preto/branco), KPIs ao vivo, relatórios por jogo, dashboard AI/BI embeddado.
 
-## Ambiente (FEVM)
+## Ambiente
 
-- Workspace: `fe-vm-wildlife-s2s`
+- Workspace: `TODO-preencher-com-seu-workspace`
 - Catálogo / schema: `wildlife_s2s_catalog.player_feedback`
-- SQL Warehouse serverless: `ae8786c45629ac32`
+- SQL Warehouse serverless: `TODO-preencher-com-seu-warehouse-id`
 - Modelo: `databricks-meta-llama-3-3-70b-instruct`
 - Jogos monitorados: Sniper 3D, Tennis Clash, Zooba, Soccer Clash (~74k reviews, 13 idiomas)
 
 ## Deploy
 
 ```bash
-databricks bundle validate -t dev -p fe-vm-wildlife-s2s
-databricks bundle deploy   -t dev -p fe-vm-wildlife-s2s
+# -p <profile> = seu profile da CLI (TODO-preencher-com-seu-profile-cli)
+databricks bundle validate -t dev -p <profile>
+databricks bundle deploy   -t dev -p <profile>
 
 # rodar componentes
-databricks bundle run pf_setup             -t dev -p fe-vm-wildlife-s2s   # schema + tabelas
-databricks bundle run pf_ingest_and_enrich -t dev -p fe-vm-wildlife-s2s   # extração + enriquecimento
-databricks bundle run pf_weekly_report     -t dev -p fe-vm-wildlife-s2s   # relatório semanal
-databricks bundle run pf_app               -t dev -p fe-vm-wildlife-s2s   # app
+databricks bundle run pf_setup             -t dev -p <profile>   # schema + tabelas
+databricks bundle run pf_ingest_and_enrich -t dev -p <profile>   # extração + enriquecimento
+databricks bundle run pf_weekly_report     -t dev -p <profile>   # relatório semanal
+databricks bundle run pf_app               -t dev -p <profile>   # app
 ```
 
 O **dashboard** é versionado em `src/dashboard/player_feedback.lvdash.json` (fonte de verdade,

@@ -10,18 +10,18 @@ bundle:
 
 variables:
   catalog:
-    description: Catálogo Unity Catalog da demo (pré-provisionado pelo FEVM)
+    description: Catálogo Unity Catalog da demo (pré-provisionado no seu workspace)
     default: wildlife_s2s_catalog
   schema:
     description: Schema onde vivem as tabelas da demo
     default: player_feedback
   warehouse_id:
     description: SQL Warehouse serverless (dashboard, App, consultas ad hoc)
-    default: ae8786c45629ac32
+    default: TODO-preencher-com-seu-warehouse-id
 
   # --- AI ---
   ai_model:
-    description: Endpoint de modelo usado por ai_query (validado no FEVM)
+    description: Endpoint de modelo usado por ai_query
     default: databricks-meta-llama-3-3-70b-instruct
 
   # --- Jogos monitorados (package names da Play Store, todos Wildlife Studios) ---
@@ -79,6 +79,6 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://fevm-wildlife-s2s.cloud.databricks.com
+      host: https://TODO-preencher-com-seu-workspace.cloud.databricks.com
     run_as:
-      user_name: pedro.perdomo@databricks.com
+      user_name: TODO-preencher-com-seu-email@empresa.com

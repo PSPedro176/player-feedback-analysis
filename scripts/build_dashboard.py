@@ -33,11 +33,11 @@ import json
 import subprocess
 import uuid
 
-PROFILE = "fe-vm-wildlife-s2s"
-WAREHOUSE_ID = "ae8786c45629ac32"
-PARENT_PATH = "/Users/pedro.perdomo@databricks.com"
-NAME = "Wildlife — Player Feedback Analysis"
-CATALOG = "wildlife_s2s_catalog"
+PROFILE = "TODO-preencher-com-seu-profile-cli"
+WAREHOUSE_ID = "TODO-preencher-com-seu-warehouse-id"
+PARENT_PATH = "TODO-preencher-com-seu-path/Users/seu-email@empresa.com"
+NAME = "Player Feedback Analysis"
+CATALOG = "TODO-preencher-com-seu-catalogo"
 SCHEMA = "player_feedback"
 ENRICHED = f"{CATALOG}.{SCHEMA}.reviews_enriched"
 
