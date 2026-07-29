@@ -11,7 +11,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog", "wildlife_s2s_catalog")
+dbutils.widgets.text("catalog", "player_feedback_catalog")
 dbutils.widgets.text("schema", "player_feedback")
 dbutils.widgets.text("ai_model", "databricks-meta-llama-3-3-70b-instruct")
 dbutils.widgets.text("sample_size", "700")

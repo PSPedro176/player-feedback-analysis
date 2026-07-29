@@ -16,6 +16,6 @@ env:
   - name: GENIE_SPACE_ID
     value: "TODO-preencher-com-seu-genie-space-id"
   - name: CATALOG
-    value: "wildlife_s2s_catalog"
+    value: "player_feedback_catalog"
   - name: SCHEMA
     value: "player_feedback"

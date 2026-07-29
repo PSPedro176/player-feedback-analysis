@@ -11,7 +11,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog", "wildlife_s2s_catalog")
+dbutils.widgets.text("catalog", "player_feedback_catalog")
 dbutils.widgets.text("schema", "player_feedback")
 
 catalog = dbutils.widgets.get("catalog")

@@ -38,7 +38,7 @@ Google Play Store ──(google-play-scraper)──▶ reviews_raw (bronze, appe
 ## Ambiente
 
 - Workspace: `TODO-preencher-com-seu-workspace`
-- Catálogo / schema: `wildlife_s2s_catalog.player_feedback`
+- Catálogo / schema: `player_feedback_catalog.player_feedback`
 - SQL Warehouse serverless: `TODO-preencher-com-seu-warehouse-id`
 - Modelo: `databricks-meta-llama-3-3-70b-instruct`
 - Jogos monitorados: Sniper 3D, Tennis Clash, Zooba, Soccer Clash (~74k reviews, 13 idiomas)

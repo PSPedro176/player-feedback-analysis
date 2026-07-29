@@ -31,7 +31,7 @@ from pyspark.sql.types import (
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog", "wildlife_s2s_catalog")
+dbutils.widgets.text("catalog", "player_feedback_catalog")
 dbutils.widgets.text("schema", "player_feedback")
 dbutils.widgets.text("games", '{"Sniper 3D": "com.fungames.sniper3d"}')
 dbutils.widgets.text("languages", '["pt", "en", "es"]')

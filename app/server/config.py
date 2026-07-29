@@ -10,7 +10,7 @@ IS_DATABRICKS_APP = bool(os.environ.get("DATABRICKS_APP_NAME"))
 # IDs / configs vindos do app.yaml (com defaults iguais aos do bundle).
 WAREHOUSE_ID = os.environ.get("SQL_WAREHOUSE_ID", "TODO-preencher-com-seu-warehouse-id")
 DASHBOARD_ID = os.environ.get("DASHBOARD_ID", "TODO-preencher-com-seu-dashboard-id")
-CATALOG = os.environ.get("CATALOG", "wildlife_s2s_catalog")
+CATALOG = os.environ.get("CATALOG", "player_feedback_catalog")
 SCHEMA = os.environ.get("SCHEMA", "player_feedback")
 
 REVIEWS_TABLE = f"{CATALOG}.{SCHEMA}.reviews_enriched"

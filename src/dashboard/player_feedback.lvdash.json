@@ -4,14 +4,14 @@
       "name": "dim_game",
       "displayName": "Jogos",
       "queryLines": [
-        "SELECT 'Todos' AS game UNION SELECT DISTINCT game FROM wildlife_s2s_catalog.player_feedback.reviews_enriched ORDER BY game"
+        "SELECT 'Todos' AS game UNION SELECT DISTINCT game FROM player_feedback_catalog.player_feedback.reviews_enriched ORDER BY game"
       ]
     },
     {
       "name": "dim_lang",
       "displayName": "Idiomas",
       "queryLines": [
-        "SELECT 'Todos' AS language UNION SELECT DISTINCT language FROM wildlife_s2s_catalog.player_feedback.reviews_enriched ORDER BY language"
+        "SELECT 'Todos' AS language UNION SELECT DISTINCT language FROM player_feedback_catalog.player_feedback.reviews_enriched ORDER BY language"
       ]
     },
     {
@@ -56,7 +56,7 @@
         "          x -> x IS NOT NULL\n",
         "        ) AS temas\n",
         "      FROM\n",
-        "        wildlife_s2s_catalog.player_feedback.reviews_enriched\n",
+        "        player_feedback_catalog.player_feedback.reviews_enriched\n",
         "      WHERE\n",
         "        (\n",
         "          :game = 'Todos'\n",
@@ -216,7 +216,7 @@
         "          x -> x IS NOT NULL\n",
         "        ) AS temas\n",
         "      FROM\n",
-        "        wildlife_s2s_catalog.player_feedback.reviews_enriched\n",
+        "        player_feedback_catalog.player_feedback.reviews_enriched\n",
         "      WHERE\n",
         "        (\n",
         "          :game = 'Todos'\n",
@@ -385,7 +385,7 @@
         "          x -> x IS NOT NULL\n",
         "        ) AS temas\n",
         "      FROM\n",
-        "        wildlife_s2s_catalog.player_feedback.reviews_enriched\n",
+        "        player_feedback_catalog.player_feedback.reviews_enriched\n",
         "      WHERE\n",
         "        (\n",
         "          :game = 'Todos'\n",
@@ -607,7 +607,7 @@
         "          x -> x IS NOT NULL\n",
         "        ) AS temas\n",
         "      FROM\n",
-        "        wildlife_s2s_catalog.player_feedback.reviews_enriched\n",
+        "        player_feedback_catalog.player_feedback.reviews_enriched\n",
         "      WHERE\n",
         "        (\n",
         "          :game = 'Todos'\n",
@@ -810,7 +810,7 @@
         "          x -> x IS NOT NULL\n",
         "        ) AS temas\n",
         "      FROM\n",
-        "        wildlife_s2s_catalog.player_feedback.reviews_enriched\n",
+        "        player_feedback_catalog.player_feedback.reviews_enriched\n",
         "      WHERE\n",
         "        (\n",
         "          :game = 'Todos'\n",
@@ -967,7 +967,7 @@
         "          x -> x IS NOT NULL\n",
         "        ) AS temas\n",
         "      FROM\n",
-        "        wildlife_s2s_catalog.player_feedback.reviews_enriched\n",
+        "        player_feedback_catalog.player_feedback.reviews_enriched\n",
         "      WHERE\n",
         "        (\n",
         "          :game = 'Todos'\n",
@@ -1149,7 +1149,7 @@
         "            x -> x IS NOT NULL\n",
         "          ) AS temas\n",
         "        FROM\n",
-        "          wildlife_s2s_catalog.player_feedback.reviews_enriched\n",
+        "          player_feedback_catalog.player_feedback.reviews_enriched\n",
         "        WHERE\n",
         "          (\n",
         "            :game = 'Todos'\n",
@@ -1266,7 +1266,7 @@
       "name": "reader_np",
       "displayName": "Leitor (sem params)",
       "queryLines": [
-        "SELECT at, game AS jogo, language AS idioma, score AS nota, sentiment AS sentimento, content AS comentario, bug_report, pricing, game_balance, toxicity, community, visuals FROM wildlife_s2s_catalog.player_feedback.reviews_enriched WHERE content IS NOT NULL AND length(trim(content)) > 0"
+        "SELECT at, game AS jogo, language AS idioma, score AS nota, sentiment AS sentimento, content AS comentario, bug_report, pricing, game_balance, toxicity, community, visuals FROM player_feedback_catalog.player_feedback.reviews_enriched WHERE content IS NOT NULL AND length(trim(content)) > 0"
       ]
     },
     {
@@ -1279,7 +1279,7 @@
         "SELECT DISTINCT\n",
         "  sentiment AS sentimento\n",
         "FROM\n",
-        "  wildlife_s2s_catalog.player_feedback.reviews_enriched\n",
+        "  player_feedback_catalog.player_feedback.reviews_enriched\n",
         "WHERE\n",
         "  sentiment IS NOT NULL\n",
         "ORDER BY\n",
@@ -1321,7 +1321,7 @@
         "          x -> x IS NOT NULL\n",
         "        ) AS temas\n",
         "      FROM\n",
-        "        wildlife_s2s_catalog.player_feedback.reviews_enriched\n",
+        "        player_feedback_catalog.player_feedback.reviews_enriched\n",
         "      WHERE\n",
         "        (\n",
         "          :game = 'Todos'\n",

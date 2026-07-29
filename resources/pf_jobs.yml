@@ -3,7 +3,7 @@ resources:
 
     # -----------------------------------------------------------------------
     # Setup — cria schema + tabelas base. Execução manual:
-    #   databricks bundle run pf_setup -t dev -p fe-vm-wildlife-s2s
+    #   databricks bundle run pf_setup -t dev -p <profile>
     # -----------------------------------------------------------------------
     pf_setup:
       name: pf_setup
