@@ -7,7 +7,7 @@ from ..config import (
     REVIEWS_TABLE,
     get_workspace_host,
 )
-from ..games import GAME_NAMES, GAMES
+from ..games import get_game_names, get_games
 from ..sql import run_query
 
 router = APIRouter()
@@ -25,13 +25,13 @@ def config():
         "host": host,
         "dashboard_id": DASHBOARD_ID,
         "dashboard_embed_url": f"{host}/embed/dashboardsv3/{DASHBOARD_ID}",
-        "games": GAMES,
+        "games": get_games(),
     }
 
 
 @router.get("/games")
 def games():
-    return GAMES
+    return get_games()
 
 
 @router.get("/overview")
@@ -94,7 +94,7 @@ def reports():
         """
     )
     # Ordenar conforme a ordem canônica dos jogos.
-    order = {name: i for i, name in enumerate(GAME_NAMES)}
+    order = {name: i for i, name in enumerate(get_game_names())}
     rows.sort(key=lambda r: order.get(r["game"], 99))
     return rows
 
@@ -102,7 +102,7 @@ def reports():
 @router.get("/reviews/{game}")
 def recent_reviews(game: str, limit: int = 8):
     """Amostra de reviews recentes de um jogo (para dar textura à página)."""
-    if game not in GAME_NAMES:
+    if game not in get_game_names():
         raise HTTPException(status_code=404, detail="Jogo desconhecido")
     return run_query(
         f"""

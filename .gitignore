@@ -4,8 +4,10 @@ __pycache__/
 .DS_Store
 node_modules/
 .venv/
-dist/
 *.egg-info/
+# NOTA: app/frontend/dist NÃO é ignorado — o Databricks App serve o build
+# estático e o `bundle deploy` respeita o .gitignore. Rode `npm run build`
+# em app/frontend antes de fazer o deploy (ver README).
 .env
 .env.local
 env.local

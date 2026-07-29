@@ -79,6 +79,11 @@ Google Play Store ──(google-play-scraper)──▶ reviews_raw (bronze, appe
 ### 3. Deploy e execução
 
 ```bash
+# Buildar o frontend da app (OBRIGATÓRIO antes do deploy).
+# O Databricks App serve o build estático de app/frontend/dist, e o
+# `bundle deploy` só envia esse diretório se ele existir localmente.
+cd app/frontend && npm install && npm run build && cd ../..
+
 # Validar o bundle
 databricks bundle validate -t dev -p <seu-profile>
 

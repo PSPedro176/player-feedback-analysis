@@ -189,7 +189,7 @@ def collect_game_language(game, package_name, lang):
         buffer = []
 
         # Trava dura de páginas na primeira carga OU em backfill_mode: evita
-        # puxar centenas de milhares (Sniper 3D tem 450k). max_pages = ceil(backfill/200).
+        # puxar centenas de milhares (jogos grandes têm 100k+). max_pages = ceil(backfill/200).
         if (is_first_load or backfill_mode) and page >= max_pages:
             stop = True
 

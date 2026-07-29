@@ -49,7 +49,7 @@ variables:
   backfill_max_per_game:
     description: >-
       Teto de reviews por jogo/idioma na PRIMEIRA carga (tabela vazia), para a
-      demo não puxar centenas de milhares (Sniper 3D tem 450k). Vira trava dura de
+      demo não puxar centenas de milhares (jogos grandes têm 100k+ reviews). Vira trava dura de
       páginas (ceil(teto/200)). Em runs incrementais o teto é ignorado (para no
       last_comment). 600 = 3 páginas/combinação → ~7,2k reviews no total da demo.
     default: 600
