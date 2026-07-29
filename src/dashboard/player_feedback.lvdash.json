@@ -1,0 +1,3055 @@
+{
+  "datasets": [
+    {
+      "name": "dim_game",
+      "displayName": "Jogos",
+      "queryLines": [
+        "SELECT 'Todos' AS game UNION SELECT DISTINCT game FROM player_feedback_catalog.player_feedback.reviews_enriched ORDER BY game"
+      ]
+    },
+    {
+      "name": "dim_lang",
+      "displayName": "Idiomas",
+      "queryLines": [
+        "SELECT 'Todos' AS language UNION SELECT DISTINCT language FROM player_feedback_catalog.player_feedback.reviews_enriched ORDER BY language"
+      ]
+    },
+    {
+      "name": "dim_tipo",
+      "displayName": "Tipos de comentário",
+      "queryLines": [
+        "SELECT 'Todos' AS tipo UNION SELECT 'Bugs' AS tipo UNION SELECT 'Preços' AS tipo UNION SELECT 'Balanceamento' AS tipo UNION SELECT 'Toxicidade' AS tipo UNION SELECT 'Comunidade' AS tipo UNION SELECT 'Visual' AS tipo ORDER BY tipo"
+      ]
+    },
+    {
+      "name": "kpis",
+      "displayName": "KPIs (filtrado)",
+      "queryLines": [
+        "WITH f AS (\n",
+        "  SELECT\n",
+        "    *\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        *,\n",
+        "        filter(\n",
+        "          array(\n",
+        "            CASE\n",
+        "              WHEN bug_report THEN 'Bugs'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN pricing THEN 'Preços'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN game_balance THEN 'Balanceamento'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN toxicity THEN 'Toxicidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN community THEN 'Comunidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN visuals THEN 'Visual'\n",
+        "            END\n",
+        "          ),\n",
+        "          x -> x IS NOT NULL\n",
+        "        ) AS temas\n",
+        "      FROM\n",
+        "        player_feedback_catalog.player_feedback.reviews_enriched\n",
+        "      WHERE\n",
+        "        (\n",
+        "          :game = 'Todos'\n",
+        "          OR game = :game\n",
+        "        )\n",
+        "        AND (\n",
+        "          :language = 'Todos'\n",
+        "          OR language = :language\n",
+        "        )\n",
+        "        AND (\n",
+        "          :periodo.min IS NULL\n",
+        "          OR DATE(at) >= :periodo.min\n",
+        "        )\n",
+        "        AND (\n",
+        "          :periodo.max IS NULL\n",
+        "          OR DATE(at) <= :periodo.max\n",
+        "        )\n",
+        "    )\n",
+        "  WHERE\n",
+        "    (\n",
+        "      :tipo = 'Todos'\n",
+        "      OR array_contains(temas, :tipo)\n",
+        "    )\n",
+        "    AND (\n",
+        "      :sentimento = 'Todos'\n",
+        "      OR sentiment = :sentimento\n",
+        "    )\n",
+        ")\n",
+        "SELECT\n",
+        "  ROUND(AVG(score), 2) AS nota,\n",
+        "  COUNT(*) AS volume,\n",
+        "  ROUND(\n",
+        "    AVG(\n",
+        "      CASE\n",
+        "        WHEN lower(sentiment) = 'positive' THEN 1\n",
+        "        WHEN lower(sentiment) = 'negative' THEN -1\n",
+        "        ELSE 0\n",
+        "      END\n",
+        "    ),\n",
+        "    2\n",
+        "  ) AS sent_score\n",
+        "FROM\n",
+        "  f"
+      ],
+      "parameters": [
+        {
+          "displayName": "game",
+          "keyword": "game",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "language",
+          "keyword": "language",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "tipo",
+          "keyword": "tipo",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "sentimento",
+          "keyword": "sentimento",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "periodo",
+          "keyword": "periodo",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "trend_score",
+      "displayName": "Nota média móvel 7d",
+      "queryLines": [
+        "WITH f AS (\n",
+        "  SELECT\n",
+        "    *\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        *,\n",
+        "        filter(\n",
+        "          array(\n",
+        "            CASE\n",
+        "              WHEN bug_report THEN 'Bugs'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN pricing THEN 'Preços'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN game_balance THEN 'Balanceamento'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN toxicity THEN 'Toxicidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN community THEN 'Comunidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN visuals THEN 'Visual'\n",
+        "            END\n",
+        "          ),\n",
+        "          x -> x IS NOT NULL\n",
+        "        ) AS temas\n",
+        "      FROM\n",
+        "        player_feedback_catalog.player_feedback.reviews_enriched\n",
+        "      WHERE\n",
+        "        (\n",
+        "          :game = 'Todos'\n",
+        "          OR game = :game\n",
+        "        )\n",
+        "        AND (\n",
+        "          :language = 'Todos'\n",
+        "          OR language = :language\n",
+        "        )\n",
+        "        AND (\n",
+        "          :periodo.min IS NULL\n",
+        "          OR DATE(at) >= :periodo.min\n",
+        "        )\n",
+        "        AND (\n",
+        "          :periodo.max IS NULL\n",
+        "          OR DATE(at) <= :periodo.max\n",
+        "        )\n",
+        "    )\n",
+        "  WHERE\n",
+        "    (\n",
+        "      :tipo = 'Todos'\n",
+        "      OR array_contains(temas, :tipo)\n",
+        "    )\n",
+        "    AND (\n",
+        "      :sentimento = 'Todos'\n",
+        "      OR sentiment = :sentimento\n",
+        "    )\n",
+        "),\n",
+        "daily AS (\n",
+        "  SELECT\n",
+        "    DATE(at) AS day,\n",
+        "    COUNT(*) AS n,\n",
+        "    SUM(score) AS s\n",
+        "  FROM\n",
+        "    f\n",
+        "  GROUP BY\n",
+        "    DATE(at)\n",
+        ")\n",
+        "SELECT\n",
+        "  day,\n",
+        "  ROUND(\n",
+        "    SUM(s) OVER (ORDER BY day RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW)\n",
+        "      / NULLIF(\n",
+        "        SUM(n) OVER (ORDER BY day RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW),\n",
+        "        0\n",
+        "      ),\n",
+        "    2\n",
+        "  ) AS nota_7d\n",
+        "FROM\n",
+        "  daily\n",
+        "ORDER BY\n",
+        "  day"
+      ],
+      "parameters": [
+        {
+          "displayName": "game",
+          "keyword": "game",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "language",
+          "keyword": "language",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "tipo",
+          "keyword": "tipo",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "sentimento",
+          "keyword": "sentimento",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "periodo",
+          "keyword": "periodo",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "trend_themes",
+      "displayName": "Share de temas móvel 7d",
+      "queryLines": [
+        "WITH f AS (\n",
+        "  SELECT\n",
+        "    *\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        *,\n",
+        "        filter(\n",
+        "          array(\n",
+        "            CASE\n",
+        "              WHEN bug_report THEN 'Bugs'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN pricing THEN 'Preços'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN game_balance THEN 'Balanceamento'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN toxicity THEN 'Toxicidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN community THEN 'Comunidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN visuals THEN 'Visual'\n",
+        "            END\n",
+        "          ),\n",
+        "          x -> x IS NOT NULL\n",
+        "        ) AS temas\n",
+        "      FROM\n",
+        "        player_feedback_catalog.player_feedback.reviews_enriched\n",
+        "      WHERE\n",
+        "        (\n",
+        "          :game = 'Todos'\n",
+        "          OR game = :game\n",
+        "        )\n",
+        "        AND (\n",
+        "          :language = 'Todos'\n",
+        "          OR language = :language\n",
+        "        )\n",
+        "        AND (\n",
+        "          :periodo.min IS NULL\n",
+        "          OR DATE(at) >= :periodo.min\n",
+        "        )\n",
+        "        AND (\n",
+        "          :periodo.max IS NULL\n",
+        "          OR DATE(at) <= :periodo.max\n",
+        "        )\n",
+        "    )\n",
+        "  WHERE\n",
+        "    (\n",
+        "      :tipo = 'Todos'\n",
+        "      OR array_contains(temas, :tipo)\n",
+        "    )\n",
+        "    AND (\n",
+        "      :sentimento = 'Todos'\n",
+        "      OR sentiment = :sentimento\n",
+        "    )\n",
+        "),\n",
+        "ex AS (\n",
+        "  SELECT\n",
+        "    DATE(at) AS day,\n",
+        "    t AS tipo_t\n",
+        "  FROM\n",
+        "    f\n",
+        "    LATERAL VIEW\n",
+        "      explode(\n",
+        "        filter(\n",
+        "          array(\n",
+        "            CASE\n",
+        "              WHEN bug_report THEN 'Bugs'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN pricing THEN 'Preços'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN game_balance THEN 'Balanceamento'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN toxicity THEN 'Toxicidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN community THEN 'Comunidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN visuals THEN 'Visual'\n",
+        "            END\n",
+        "          ),\n",
+        "          x -> x IS NOT NULL\n",
+        "        )\n",
+        "      ) x\n",
+        "      AS t\n",
+        "),\n",
+        "tot AS (\n",
+        "  SELECT\n",
+        "    DATE(at) AS day,\n",
+        "    COUNT(*) AS n\n",
+        "  FROM\n",
+        "    f\n",
+        "  GROUP BY\n",
+        "    DATE(at)\n",
+        "),\n",
+        "cnt AS (\n",
+        "  SELECT\n",
+        "    day,\n",
+        "    tipo_t,\n",
+        "    COUNT(*) AS c\n",
+        "  FROM\n",
+        "    ex\n",
+        "  GROUP BY\n",
+        "    day,\n",
+        "    tipo_t\n",
+        ")\n",
+        "SELECT\n",
+        "  c.day,\n",
+        "  c.tipo_t AS tema,\n",
+        "  ROUND(\n",
+        "    100.0\n",
+        "      * SUM(c.c) OVER (\n",
+        "          PARTITION BY c.tipo_t\n",
+        "          ORDER BY c.day\n",
+        "          RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW\n",
+        "        )\n",
+        "      / NULLIF(\n",
+        "        SUM(t.n) OVER (ORDER BY c.day RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW),\n",
+        "        0\n",
+        "      ),\n",
+        "    1\n",
+        "  ) AS share_7d\n",
+        "FROM\n",
+        "  cnt c\n",
+        "    JOIN tot t\n",
+        "      ON c.day = t.day\n",
+        "ORDER BY\n",
+        "  c.day,\n",
+        "  c.tipo_t"
+      ],
+      "parameters": [
+        {
+          "displayName": "game",
+          "keyword": "game",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "language",
+          "keyword": "language",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "tipo",
+          "keyword": "tipo",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "sentimento",
+          "keyword": "sentimento",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "periodo",
+          "keyword": "periodo",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "trend_themes_abs",
+      "displayName": "Contagem de temas móvel 7d",
+      "queryLines": [
+        "WITH f AS (\n",
+        "  SELECT\n",
+        "    *\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        *,\n",
+        "        filter(\n",
+        "          array(\n",
+        "            CASE\n",
+        "              WHEN bug_report THEN 'Bugs'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN pricing THEN 'Preços'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN game_balance THEN 'Balanceamento'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN toxicity THEN 'Toxicidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN community THEN 'Comunidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN visuals THEN 'Visual'\n",
+        "            END\n",
+        "          ),\n",
+        "          x -> x IS NOT NULL\n",
+        "        ) AS temas\n",
+        "      FROM\n",
+        "        player_feedback_catalog.player_feedback.reviews_enriched\n",
+        "      WHERE\n",
+        "        (\n",
+        "          :game = 'Todos'\n",
+        "          OR game = :game\n",
+        "        )\n",
+        "        AND (\n",
+        "          :language = 'Todos'\n",
+        "          OR language = :language\n",
+        "        )\n",
+        "        AND (\n",
+        "          :periodo.min IS NULL\n",
+        "          OR DATE(at) >= :periodo.min\n",
+        "        )\n",
+        "        AND (\n",
+        "          :periodo.max IS NULL\n",
+        "          OR DATE(at) <= :periodo.max\n",
+        "        )\n",
+        "    )\n",
+        "  WHERE\n",
+        "    (\n",
+        "      :tipo = 'Todos'\n",
+        "      OR array_contains(temas, :tipo)\n",
+        "    )\n",
+        "    AND (\n",
+        "      :sentimento = 'Todos'\n",
+        "      OR sentiment = :sentimento\n",
+        "    )\n",
+        "),\n",
+        "ex AS (\n",
+        "  SELECT\n",
+        "    DATE(at) AS day,\n",
+        "    t AS tipo_t\n",
+        "  FROM\n",
+        "    f\n",
+        "    LATERAL VIEW\n",
+        "      explode(\n",
+        "        filter(\n",
+        "          array(\n",
+        "            CASE\n",
+        "              WHEN bug_report THEN 'Bugs'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN pricing THEN 'Preços'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN game_balance THEN 'Balanceamento'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN toxicity THEN 'Toxicidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN community THEN 'Comunidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN visuals THEN 'Visual'\n",
+        "            END\n",
+        "          ),\n",
+        "          x -> x IS NOT NULL\n",
+        "        )\n",
+        "      ) x\n",
+        "      AS t\n",
+        "),\n",
+        "cnt AS (\n",
+        "  SELECT\n",
+        "    day,\n",
+        "    tipo_t,\n",
+        "    COUNT(*) AS c\n",
+        "  FROM\n",
+        "    ex\n",
+        "  GROUP BY\n",
+        "    day,\n",
+        "    tipo_t\n",
+        ")\n",
+        "SELECT\n",
+        "  day,\n",
+        "  tipo_t AS tema,\n",
+        "  SUM(c) OVER (\n",
+        "      PARTITION BY tipo_t\n",
+        "      ORDER BY day\n",
+        "      RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW\n",
+        "    ) AS cnt_7d\n",
+        "FROM\n",
+        "  cnt\n",
+        "ORDER BY\n",
+        "  day,\n",
+        "  tipo_t"
+      ],
+      "parameters": [
+        {
+          "displayName": "game",
+          "keyword": "game",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "language",
+          "keyword": "language",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "tipo",
+          "keyword": "tipo",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "sentimento",
+          "keyword": "sentimento",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "periodo",
+          "keyword": "periodo",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "trend_sentiment",
+      "displayName": "Sentimento por semana",
+      "queryLines": [
+        "WITH f AS (\n",
+        "  SELECT\n",
+        "    *\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        *,\n",
+        "        filter(\n",
+        "          array(\n",
+        "            CASE\n",
+        "              WHEN bug_report THEN 'Bugs'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN pricing THEN 'Preços'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN game_balance THEN 'Balanceamento'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN toxicity THEN 'Toxicidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN community THEN 'Comunidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN visuals THEN 'Visual'\n",
+        "            END\n",
+        "          ),\n",
+        "          x -> x IS NOT NULL\n",
+        "        ) AS temas\n",
+        "      FROM\n",
+        "        player_feedback_catalog.player_feedback.reviews_enriched\n",
+        "      WHERE\n",
+        "        (\n",
+        "          :game = 'Todos'\n",
+        "          OR game = :game\n",
+        "        )\n",
+        "        AND (\n",
+        "          :language = 'Todos'\n",
+        "          OR language = :language\n",
+        "        )\n",
+        "        AND (\n",
+        "          :periodo.min IS NULL\n",
+        "          OR DATE(at) >= :periodo.min\n",
+        "        )\n",
+        "        AND (\n",
+        "          :periodo.max IS NULL\n",
+        "          OR DATE(at) <= :periodo.max\n",
+        "        )\n",
+        "    )\n",
+        "  WHERE\n",
+        "    (\n",
+        "      :tipo = 'Todos'\n",
+        "      OR array_contains(temas, :tipo)\n",
+        "    )\n",
+        "    AND (\n",
+        "      :sentimento = 'Todos'\n",
+        "      OR sentiment = :sentimento\n",
+        "    )\n",
+        ")\n",
+        "SELECT\n",
+        "  DATE(DATE_TRUNC('WEEK', at)) AS semana,\n",
+        "  lower(sentiment) AS sentimento,\n",
+        "  COUNT(*) AS n\n",
+        "FROM\n",
+        "  f\n",
+        "GROUP BY\n",
+        "  1,\n",
+        "  2\n",
+        "ORDER BY\n",
+        "  1,\n",
+        "  2"
+      ],
+      "parameters": [
+        {
+          "displayName": "game",
+          "keyword": "game",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "language",
+          "keyword": "language",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "tipo",
+          "keyword": "tipo",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "sentimento",
+          "keyword": "sentimento",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "periodo",
+          "keyword": "periodo",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "trend_vol",
+      "displayName": "Volume + % negativo diário",
+      "queryLines": [
+        "WITH f AS (\n",
+        "  SELECT\n",
+        "    *\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        *,\n",
+        "        filter(\n",
+        "          array(\n",
+        "            CASE\n",
+        "              WHEN bug_report THEN 'Bugs'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN pricing THEN 'Preços'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN game_balance THEN 'Balanceamento'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN toxicity THEN 'Toxicidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN community THEN 'Comunidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN visuals THEN 'Visual'\n",
+        "            END\n",
+        "          ),\n",
+        "          x -> x IS NOT NULL\n",
+        "        ) AS temas\n",
+        "      FROM\n",
+        "        player_feedback_catalog.player_feedback.reviews_enriched\n",
+        "      WHERE\n",
+        "        (\n",
+        "          :game = 'Todos'\n",
+        "          OR game = :game\n",
+        "        )\n",
+        "        AND (\n",
+        "          :language = 'Todos'\n",
+        "          OR language = :language\n",
+        "        )\n",
+        "        AND (\n",
+        "          :periodo.min IS NULL\n",
+        "          OR DATE(at) >= :periodo.min\n",
+        "        )\n",
+        "        AND (\n",
+        "          :periodo.max IS NULL\n",
+        "          OR DATE(at) <= :periodo.max\n",
+        "        )\n",
+        "    )\n",
+        "  WHERE\n",
+        "    (\n",
+        "      :tipo = 'Todos'\n",
+        "      OR array_contains(temas, :tipo)\n",
+        "    )\n",
+        "    AND (\n",
+        "      :sentimento = 'Todos'\n",
+        "      OR sentiment = :sentimento\n",
+        "    )\n",
+        "),\n",
+        "daily AS (\n",
+        "  SELECT\n",
+        "    DATE(at) AS day,\n",
+        "    COUNT(*) AS n,\n",
+        "    SUM(\n",
+        "      CASE\n",
+        "        WHEN lower(sentiment) = 'negative' THEN 1\n",
+        "        ELSE 0\n",
+        "      END\n",
+        "    ) AS neg\n",
+        "  FROM\n",
+        "    f\n",
+        "  GROUP BY\n",
+        "    DATE(at)\n",
+        ")\n",
+        "SELECT\n",
+        "  day,\n",
+        "  n AS reviews,\n",
+        "  ROUND(100.0 * neg / NULLIF(n, 0), 1) AS pct_neg\n",
+        "FROM\n",
+        "  daily\n",
+        "ORDER BY\n",
+        "  day"
+      ],
+      "parameters": [
+        {
+          "displayName": "game",
+          "keyword": "game",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "language",
+          "keyword": "language",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "tipo",
+          "keyword": "tipo",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "sentimento",
+          "keyword": "sentimento",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "periodo",
+          "keyword": "periodo",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "reader",
+      "displayName": "Leitor de comentários",
+      "queryLines": [
+        "SELECT\n",
+        "  at,\n",
+        "  game AS jogo,\n",
+        "  language AS idioma,\n",
+        "  score AS nota,\n",
+        "  sentiment AS sentimento,\n",
+        "  content AS comentario,\n",
+        "  bug_report,\n",
+        "  pricing,\n",
+        "  game_balance,\n",
+        "  toxicity,\n",
+        "  community,\n",
+        "  visuals\n",
+        "FROM\n",
+        "  (\n",
+        "    SELECT\n",
+        "      *\n",
+        "    FROM\n",
+        "      (\n",
+        "        SELECT\n",
+        "          *,\n",
+        "          filter(\n",
+        "            array(\n",
+        "              CASE\n",
+        "                WHEN bug_report THEN 'Bugs'\n",
+        "              END,\n",
+        "              CASE\n",
+        "                WHEN pricing THEN 'Preços'\n",
+        "              END,\n",
+        "              CASE\n",
+        "                WHEN game_balance THEN 'Balanceamento'\n",
+        "              END,\n",
+        "              CASE\n",
+        "                WHEN toxicity THEN 'Toxicidade'\n",
+        "              END,\n",
+        "              CASE\n",
+        "                WHEN community THEN 'Comunidade'\n",
+        "              END,\n",
+        "              CASE\n",
+        "                WHEN visuals THEN 'Visual'\n",
+        "              END\n",
+        "            ),\n",
+        "            x -> x IS NOT NULL\n",
+        "          ) AS temas\n",
+        "        FROM\n",
+        "          player_feedback_catalog.player_feedback.reviews_enriched\n",
+        "        WHERE\n",
+        "          (\n",
+        "            :game = 'Todos'\n",
+        "            OR game = :game\n",
+        "          )\n",
+        "          AND (\n",
+        "            :language = 'Todos'\n",
+        "            OR language = :language\n",
+        "          )\n",
+        "          AND (\n",
+        "            :periodo.min IS NULL\n",
+        "            OR DATE(at) >= :periodo.min\n",
+        "          )\n",
+        "          AND (\n",
+        "            :periodo.max IS NULL\n",
+        "            OR DATE(at) <= :periodo.max\n",
+        "          )\n",
+        "      )\n",
+        "    WHERE\n",
+        "      (\n",
+        "        :tipo = 'Todos'\n",
+        "        OR array_contains(temas, :tipo)\n",
+        "      )\n",
+        "      AND (\n",
+        "        :sentimento = 'Todos'\n",
+        "        OR sentiment = :sentimento\n",
+        "      )\n",
+        "  ) f\n",
+        "WHERE\n",
+        "  content IS NOT NULL\n",
+        "  AND length(trim(content)) > 0"
+      ],
+      "parameters": [
+        {
+          "displayName": "game",
+          "keyword": "game",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "language",
+          "keyword": "language",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "tipo",
+          "keyword": "tipo",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "sentimento",
+          "keyword": "sentimento",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "periodo",
+          "keyword": "periodo",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "reader_np",
+      "displayName": "Leitor (sem params)",
+      "queryLines": [
+        "SELECT at, game AS jogo, language AS idioma, score AS nota, sentiment AS sentimento, content AS comentario, bug_report, pricing, game_balance, toxicity, community, visuals FROM player_feedback_catalog.player_feedback.reviews_enriched WHERE content IS NOT NULL AND length(trim(content)) > 0"
+      ]
+    },
+    {
+      "name": "dim_sentimento",
+      "displayName": "Sentimentos",
+      "queryLines": [
+        "SELECT\n",
+        "  'Todos' AS sentimento\n",
+        "UNION\n",
+        "SELECT DISTINCT\n",
+        "  sentiment AS sentimento\n",
+        "FROM\n",
+        "  player_feedback_catalog.player_feedback.reviews_enriched\n",
+        "WHERE\n",
+        "  sentiment IS NOT NULL\n",
+        "ORDER BY\n",
+        "  sentimento"
+      ]
+    },
+    {
+      "name": "trend_themes_combo",
+      "displayName": "Temas — contagem e share móvel 7d",
+      "queryLines": [
+        "WITH f AS (\n",
+        "  SELECT\n",
+        "    *\n",
+        "  FROM\n",
+        "    (\n",
+        "      SELECT\n",
+        "        *,\n",
+        "        filter(\n",
+        "          array(\n",
+        "            CASE\n",
+        "              WHEN bug_report THEN 'Bugs'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN pricing THEN 'Preços'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN game_balance THEN 'Balanceamento'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN toxicity THEN 'Toxicidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN community THEN 'Comunidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN visuals THEN 'Visual'\n",
+        "            END\n",
+        "          ),\n",
+        "          x -> x IS NOT NULL\n",
+        "        ) AS temas\n",
+        "      FROM\n",
+        "        player_feedback_catalog.player_feedback.reviews_enriched\n",
+        "      WHERE\n",
+        "        (\n",
+        "          :game = 'Todos'\n",
+        "          OR game = :game\n",
+        "        )\n",
+        "        AND (\n",
+        "          :language = 'Todos'\n",
+        "          OR language = :language\n",
+        "        )\n",
+        "        AND (\n",
+        "          :periodo.min IS NULL\n",
+        "          OR DATE(at) >= :periodo.min\n",
+        "        )\n",
+        "        AND (\n",
+        "          :periodo.max IS NULL\n",
+        "          OR DATE(at) <= :periodo.max\n",
+        "        )\n",
+        "    )\n",
+        "  WHERE\n",
+        "    (\n",
+        "      :tipo = 'Todos'\n",
+        "      OR array_contains(temas, :tipo)\n",
+        "    )\n",
+        "    AND (\n",
+        "      :sentimento = 'Todos'\n",
+        "      OR sentiment = :sentimento\n",
+        "    )\n",
+        "),\n",
+        "ex AS (\n",
+        "  SELECT\n",
+        "    DATE(at) AS day,\n",
+        "    t AS tipo_t\n",
+        "  FROM\n",
+        "    f\n",
+        "    LATERAL VIEW\n",
+        "      explode(\n",
+        "        filter(\n",
+        "          array(\n",
+        "            CASE\n",
+        "              WHEN bug_report THEN 'Bugs'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN pricing THEN 'Preços'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN game_balance THEN 'Balanceamento'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN toxicity THEN 'Toxicidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN community THEN 'Comunidade'\n",
+        "            END,\n",
+        "            CASE\n",
+        "              WHEN visuals THEN 'Visual'\n",
+        "            END\n",
+        "          ),\n",
+        "          x -> x IS NOT NULL\n",
+        "        )\n",
+        "      ) x\n",
+        "      AS t\n",
+        "),\n",
+        "tot AS (\n",
+        "  SELECT\n",
+        "    DATE(at) AS day,\n",
+        "    COUNT(*) AS n\n",
+        "  FROM\n",
+        "    f\n",
+        "  GROUP BY\n",
+        "    DATE(at)\n",
+        "),\n",
+        "cnt AS (\n",
+        "  SELECT\n",
+        "    day,\n",
+        "    tipo_t,\n",
+        "    COUNT(*) AS c\n",
+        "  FROM\n",
+        "    ex\n",
+        "  GROUP BY\n",
+        "    day,\n",
+        "    tipo_t\n",
+        ")\n",
+        "SELECT\n",
+        "  c.day,\n",
+        "  c.tipo_t AS tema,\n",
+        "  SUM(c.c) OVER (\n",
+        "      PARTITION BY c.tipo_t\n",
+        "      ORDER BY c.day\n",
+        "      RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW\n",
+        "    ) AS cnt_7d,\n",
+        "  ROUND(\n",
+        "    100.0\n",
+        "      * SUM(c.c) OVER (\n",
+        "          PARTITION BY c.tipo_t\n",
+        "          ORDER BY c.day\n",
+        "          RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW\n",
+        "        )\n",
+        "      / NULLIF(\n",
+        "        SUM(t.n) OVER (ORDER BY c.day RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW),\n",
+        "        0\n",
+        "      ),\n",
+        "    1\n",
+        "  ) AS share_7d\n",
+        "FROM\n",
+        "  cnt c\n",
+        "    JOIN tot t\n",
+        "      ON c.day = t.day\n",
+        "ORDER BY\n",
+        "  c.day,\n",
+        "  c.tipo_t"
+      ],
+      "parameters": [
+        {
+          "displayName": "game",
+          "keyword": "game",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "language",
+          "keyword": "language",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "tipo",
+          "keyword": "tipo",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "sentimento",
+          "keyword": "sentimento",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "Todos"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "periodo",
+          "keyword": "periodo",
+          "dataType": "DATE",
+          "complexType": "RANGE",
+          "defaultSelection": {
+            "range": {
+              "dataType": "DATE",
+              "min": {
+                "value": "now-90d/d"
+              },
+              "max": {
+                "value": "now/d"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "0073472e",
+      "displayName": "Monitor",
+      "layout": [
+        {
+          "widget": {
+            "name": "14eb5a18",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpis",
+                  "fields": [
+                    {
+                      "name": "nota",
+                      "expression": "`nota`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "nota",
+                  "displayName": "Nota média"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Nota média"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "87397342",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpis",
+                  "fields": [
+                    {
+                      "name": "volume",
+                      "expression": "`volume`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "volume",
+                  "displayName": "Comentários totais"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Comentários totais"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "10404427",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpis",
+                  "fields": [
+                    {
+                      "name": "sent_score",
+                      "expression": "`sent_score`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sent_score",
+                  "displayName": "Sentimento médio (positive=+1, negative=−1)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Sentimento médio (positive=+1, negative=−1)"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "188198a5",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "trend_sentiment",
+                  "fields": [
+                    {
+                      "name": "semana",
+                      "expression": "`semana`"
+                    },
+                    {
+                      "name": "n",
+                      "expression": "`n`"
+                    },
+                    {
+                      "name": "sentimento",
+                      "expression": "`sentimento`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "semana",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "",
+                  "axis": {
+                    "tickFormat": "MMM d"
+                  }
+                },
+                "y": {
+                  "fieldName": "n",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "nº de avaliações",
+                  "axis": {
+                    "title": "nº de avaliações"
+                  }
+                },
+                "color": {
+                  "fieldName": "sentimento",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "positive",
+                        "color": "#00A972"
+                      },
+                      {
+                        "value": "neutral",
+                        "color": "#8BCAE7"
+                      },
+                      {
+                        "value": "mixed",
+                        "color": "#FFAB00"
+                      },
+                      {
+                        "value": "negative",
+                        "color": "#FF3621"
+                      }
+                    ]
+                  },
+                  "displayName": "Sentimento"
+                }
+              },
+              "mark": {
+                "colors": [
+                  "#FF3621",
+                  "#FFAB00",
+                  "#00A972",
+                  "#2272B4",
+                  "#8BCAE7",
+                  "#AB4057",
+                  "#99DDB4",
+                  "#FCA4A1",
+                  "#919191",
+                  "#BF7080"
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avaliações por sentimento (por semana)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "64905e8e",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "trend_score",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "nota_7d",
+                      "expression": "`nota_7d`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "displayName": "",
+                  "axis": {
+                    "tickFormat": "MMM d"
+                  }
+                },
+                "y": {
+                  "fieldName": "nota_7d",
+                  "scale": {
+                    "type": "quantitative",
+                    "zeroBaseline": false
+                  },
+                  "displayName": "nota (1–5)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Nota na Play Store — média móvel 7d"
+              },
+              "mark": {
+                "colors": [
+                  "#FF3621"
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 11,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "ccee9130",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "trend_vol",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "reviews",
+                      "expression": "`reviews`"
+                    },
+                    {
+                      "name": "pct_neg",
+                      "expression": "`pct_neg`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "frame": {
+                "showTitle": true,
+                "title": "Volume diário de reviews e % de reviews negativos"
+              },
+              "mark": {
+                "colors": [
+                  "#8BCAE7",
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 3
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 5
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 6
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 7
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 8
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 9
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 10
+                  }
+                ]
+              },
+              "widgetType": "combo",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "primary": {
+                    "fields": [
+                      {
+                        "fieldName": "reviews",
+                        "displayName": "reviews/dia"
+                      }
+                    ],
+                    "scale": {
+                      "type": "quantitative"
+                    }
+                  },
+                  "secondary": {
+                    "fields": [
+                      {
+                        "fieldName": "pct_neg",
+                        "displayName": "% negativo"
+                      }
+                    ],
+                    "scale": {
+                      "type": "quantitative"
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 12,
+            "height": 9
+          }
+        },
+        {
+          "widget": {
+            "name": "trend_themes_combo_widget",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "trend_themes_combo",
+                  "fields": [
+                    {
+                      "name": "day",
+                      "expression": "`day`"
+                    },
+                    {
+                      "name": "cnt_7d",
+                      "expression": "`cnt_7d`"
+                    },
+                    {
+                      "name": "share_7d",
+                      "expression": "`share_7d`"
+                    },
+                    {
+                      "name": "tema",
+                      "expression": "`tema`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "facet": {
+                "type": "wrap",
+                "fieldName": "tema",
+                "layout": {
+                  "column": {
+                    "type": "count",
+                    "value": 3
+                  }
+                },
+                "scale": {
+                  "type": "categorical"
+                }
+              },
+              "version": 1,
+              "frame": {
+                "showTitle": true,
+                "title": "Tendência de temas — contagem e share móvel de 7 dias"
+              },
+              "mark": {
+                "colors": [
+                  "#8BCAE7",
+                  "#FF3621"
+                ]
+              },
+              "widgetType": "combo",
+              "encodings": {
+                "x": {
+                  "fieldName": "day",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "primary": {
+                    "fields": [
+                      {
+                        "fieldName": "cnt_7d",
+                        "displayName": "reviews (7d)"
+                      }
+                    ],
+                    "scale": {
+                      "type": "quantitative"
+                    }
+                  },
+                  "secondary": {
+                    "fields": [
+                      {
+                        "fieldName": "share_7d",
+                        "displayName": "% dos reviews"
+                      }
+                    ],
+                    "scale": {
+                      "type": "quantitative"
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 12,
+            "height": 16
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "e621d211",
+      "displayName": "Ler comentários",
+      "layout": [
+        {
+          "widget": {
+            "name": "aec8eded",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpis",
+                  "fields": [
+                    {
+                      "name": "volume",
+                      "expression": "`volume`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "volume",
+                  "displayName": "Comentários (filtrados)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Comentários (filtrados)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "92b44fee",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "reader",
+                  "fields": [
+                    {
+                      "name": "jogo",
+                      "expression": "`jogo`"
+                    },
+                    {
+                      "name": "nota",
+                      "expression": "`nota`"
+                    },
+                    {
+                      "name": "sentimento",
+                      "expression": "`sentimento`"
+                    },
+                    {
+                      "name": "comentario",
+                      "expression": "`comentario`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "jogo"
+                  },
+                  {
+                    "fieldName": "nota"
+                  },
+                  {
+                    "fieldName": "sentimento"
+                  },
+                  {
+                    "fieldName": "comentario"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 12,
+            "height": 10
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "0292d07e",
+      "displayName": "Global Filters",
+      "layout": [
+        {
+          "widget": {
+            "name": "filter_game",
+            "queries": [
+              {
+                "name": "dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f10a9581dc024d5c13f_game",
+                "query": {
+                  "datasetName": "dim_game",
+                  "fields": [
+                    {
+                      "name": "game",
+                      "expression": "`game`"
+                    },
+                    {
+                      "name": "game_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f2fbe0c03ff45052c41_game",
+                "query": {
+                  "datasetName": "kpis",
+                  "parameters": [
+                    {
+                      "name": "game",
+                      "keyword": "game"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f32ab7a2288e0ea6e26_game",
+                "query": {
+                  "datasetName": "trend_score",
+                  "parameters": [
+                    {
+                      "name": "game",
+                      "keyword": "game"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3590867ac7d3037cfb_game",
+                "query": {
+                  "datasetName": "trend_themes",
+                  "parameters": [
+                    {
+                      "name": "game",
+                      "keyword": "game"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f38a9ad57102f1143f4_game",
+                "query": {
+                  "datasetName": "trend_themes_abs",
+                  "parameters": [
+                    {
+                      "name": "game",
+                      "keyword": "game"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ba31be5ef10dbf4d6_game",
+                "query": {
+                  "datasetName": "trend_sentiment",
+                  "parameters": [
+                    {
+                      "name": "game",
+                      "keyword": "game"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ea39e893282389f1c_game",
+                "query": {
+                  "datasetName": "trend_vol",
+                  "parameters": [
+                    {
+                      "name": "game",
+                      "keyword": "game"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f41a3baa38d67d2f6f6_game",
+                "query": {
+                  "datasetName": "reader",
+                  "parameters": [
+                    {
+                      "name": "game",
+                      "keyword": "game"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f1830aa9fe14b8ba71214e63e80834_game",
+                "query": {
+                  "datasetName": "trend_themes_combo",
+                  "parameters": [
+                    {
+                      "name": "game",
+                      "keyword": "game"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Jogo"
+              },
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "game",
+                    "queryName": "dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f10a9581dc024d5c13f_game"
+                  },
+                  {
+                    "parameterName": "game",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f2fbe0c03ff45052c41_game"
+                  },
+                  {
+                    "parameterName": "game",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f32ab7a2288e0ea6e26_game"
+                  },
+                  {
+                    "parameterName": "game",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3590867ac7d3037cfb_game"
+                  },
+                  {
+                    "parameterName": "game",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f38a9ad57102f1143f4_game"
+                  },
+                  {
+                    "parameterName": "game",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ba31be5ef10dbf4d6_game"
+                  },
+                  {
+                    "parameterName": "game",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ea39e893282389f1c_game"
+                  },
+                  {
+                    "parameterName": "game",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f41a3baa38d67d2f6f6_game"
+                  },
+                  {
+                    "parameterName": "game",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f1830aa9fe14b8ba71214e63e80834_game"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_language",
+            "queries": [
+              {
+                "name": "dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f28bd536e13fd18c3c8_language",
+                "query": {
+                  "datasetName": "dim_lang",
+                  "fields": [
+                    {
+                      "name": "language",
+                      "expression": "`language`"
+                    },
+                    {
+                      "name": "language_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f2fbe0c03ff45052c41_language",
+                "query": {
+                  "datasetName": "kpis",
+                  "parameters": [
+                    {
+                      "name": "language",
+                      "keyword": "language"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f32ab7a2288e0ea6e26_language",
+                "query": {
+                  "datasetName": "trend_score",
+                  "parameters": [
+                    {
+                      "name": "language",
+                      "keyword": "language"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3590867ac7d3037cfb_language",
+                "query": {
+                  "datasetName": "trend_themes",
+                  "parameters": [
+                    {
+                      "name": "language",
+                      "keyword": "language"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f38a9ad57102f1143f4_language",
+                "query": {
+                  "datasetName": "trend_themes_abs",
+                  "parameters": [
+                    {
+                      "name": "language",
+                      "keyword": "language"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ba31be5ef10dbf4d6_language",
+                "query": {
+                  "datasetName": "trend_sentiment",
+                  "parameters": [
+                    {
+                      "name": "language",
+                      "keyword": "language"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ea39e893282389f1c_language",
+                "query": {
+                  "datasetName": "trend_vol",
+                  "parameters": [
+                    {
+                      "name": "language",
+                      "keyword": "language"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f41a3baa38d67d2f6f6_language",
+                "query": {
+                  "datasetName": "reader",
+                  "parameters": [
+                    {
+                      "name": "language",
+                      "keyword": "language"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f1830aa9fe14b8ba71214e63e80834_language",
+                "query": {
+                  "datasetName": "trend_themes_combo",
+                  "parameters": [
+                    {
+                      "name": "language",
+                      "keyword": "language"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Idioma"
+              },
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "language",
+                    "queryName": "dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f28bd536e13fd18c3c8_language"
+                  },
+                  {
+                    "parameterName": "language",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f2fbe0c03ff45052c41_language"
+                  },
+                  {
+                    "parameterName": "language",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f32ab7a2288e0ea6e26_language"
+                  },
+                  {
+                    "parameterName": "language",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3590867ac7d3037cfb_language"
+                  },
+                  {
+                    "parameterName": "language",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f38a9ad57102f1143f4_language"
+                  },
+                  {
+                    "parameterName": "language",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ba31be5ef10dbf4d6_language"
+                  },
+                  {
+                    "parameterName": "language",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ea39e893282389f1c_language"
+                  },
+                  {
+                    "parameterName": "language",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f41a3baa38d67d2f6f6_language"
+                  },
+                  {
+                    "parameterName": "language",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f1830aa9fe14b8ba71214e63e80834_language"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_tipo",
+            "queries": [
+              {
+                "name": "dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f2bae21a9ca5e638fb5_tipo",
+                "query": {
+                  "datasetName": "dim_tipo",
+                  "fields": [
+                    {
+                      "name": "tipo",
+                      "expression": "`tipo`"
+                    },
+                    {
+                      "name": "tipo_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f2fbe0c03ff45052c41_tipo",
+                "query": {
+                  "datasetName": "kpis",
+                  "parameters": [
+                    {
+                      "name": "tipo",
+                      "keyword": "tipo"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f32ab7a2288e0ea6e26_tipo",
+                "query": {
+                  "datasetName": "trend_score",
+                  "parameters": [
+                    {
+                      "name": "tipo",
+                      "keyword": "tipo"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3590867ac7d3037cfb_tipo",
+                "query": {
+                  "datasetName": "trend_themes",
+                  "parameters": [
+                    {
+                      "name": "tipo",
+                      "keyword": "tipo"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f38a9ad57102f1143f4_tipo",
+                "query": {
+                  "datasetName": "trend_themes_abs",
+                  "parameters": [
+                    {
+                      "name": "tipo",
+                      "keyword": "tipo"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ba31be5ef10dbf4d6_tipo",
+                "query": {
+                  "datasetName": "trend_sentiment",
+                  "parameters": [
+                    {
+                      "name": "tipo",
+                      "keyword": "tipo"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ea39e893282389f1c_tipo",
+                "query": {
+                  "datasetName": "trend_vol",
+                  "parameters": [
+                    {
+                      "name": "tipo",
+                      "keyword": "tipo"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f41a3baa38d67d2f6f6_tipo",
+                "query": {
+                  "datasetName": "reader",
+                  "parameters": [
+                    {
+                      "name": "tipo",
+                      "keyword": "tipo"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f1830aa9fe14b8ba71214e63e80834_tipo",
+                "query": {
+                  "datasetName": "trend_themes_combo",
+                  "parameters": [
+                    {
+                      "name": "tipo",
+                      "keyword": "tipo"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Tipo de comentário"
+              },
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "tipo",
+                    "queryName": "dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f2bae21a9ca5e638fb5_tipo"
+                  },
+                  {
+                    "parameterName": "tipo",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f2fbe0c03ff45052c41_tipo"
+                  },
+                  {
+                    "parameterName": "tipo",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f32ab7a2288e0ea6e26_tipo"
+                  },
+                  {
+                    "parameterName": "tipo",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3590867ac7d3037cfb_tipo"
+                  },
+                  {
+                    "parameterName": "tipo",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f38a9ad57102f1143f4_tipo"
+                  },
+                  {
+                    "parameterName": "tipo",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ba31be5ef10dbf4d6_tipo"
+                  },
+                  {
+                    "parameterName": "tipo",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ea39e893282389f1c_tipo"
+                  },
+                  {
+                    "parameterName": "tipo",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f41a3baa38d67d2f6f6_tipo"
+                  },
+                  {
+                    "parameterName": "tipo",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f1830aa9fe14b8ba71214e63e80834_tipo"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_sentimento",
+            "queries": [
+              {
+                "name": "dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f18307f1551e069923f50a6a082288_sentimento",
+                "query": {
+                  "datasetName": "dim_sentimento",
+                  "fields": [
+                    {
+                      "name": "sentimento",
+                      "expression": "`sentimento`"
+                    },
+                    {
+                      "name": "sentimento_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f2fbe0c03ff45052c41_sentimento",
+                "query": {
+                  "datasetName": "kpis",
+                  "parameters": [
+                    {
+                      "name": "sentimento",
+                      "keyword": "sentimento"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f32ab7a2288e0ea6e26_sentimento",
+                "query": {
+                  "datasetName": "trend_score",
+                  "parameters": [
+                    {
+                      "name": "sentimento",
+                      "keyword": "sentimento"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3590867ac7d3037cfb_sentimento",
+                "query": {
+                  "datasetName": "trend_themes",
+                  "parameters": [
+                    {
+                      "name": "sentimento",
+                      "keyword": "sentimento"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f38a9ad57102f1143f4_sentimento",
+                "query": {
+                  "datasetName": "trend_themes_abs",
+                  "parameters": [
+                    {
+                      "name": "sentimento",
+                      "keyword": "sentimento"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ba31be5ef10dbf4d6_sentimento",
+                "query": {
+                  "datasetName": "trend_sentiment",
+                  "parameters": [
+                    {
+                      "name": "sentimento",
+                      "keyword": "sentimento"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ea39e893282389f1c_sentimento",
+                "query": {
+                  "datasetName": "trend_vol",
+                  "parameters": [
+                    {
+                      "name": "sentimento",
+                      "keyword": "sentimento"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f41a3baa38d67d2f6f6_sentimento",
+                "query": {
+                  "datasetName": "reader",
+                  "parameters": [
+                    {
+                      "name": "sentimento",
+                      "keyword": "sentimento"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f1830aa9fe14b8ba71214e63e80834_sentimento",
+                "query": {
+                  "datasetName": "trend_themes_combo",
+                  "parameters": [
+                    {
+                      "name": "sentimento",
+                      "keyword": "sentimento"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Sentimento"
+              },
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "sentimento",
+                    "queryName": "dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f18307f1551e069923f50a6a082288_sentimento"
+                  },
+                  {
+                    "parameterName": "sentimento",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f2fbe0c03ff45052c41_sentimento"
+                  },
+                  {
+                    "parameterName": "sentimento",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f32ab7a2288e0ea6e26_sentimento"
+                  },
+                  {
+                    "parameterName": "sentimento",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3590867ac7d3037cfb_sentimento"
+                  },
+                  {
+                    "parameterName": "sentimento",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f38a9ad57102f1143f4_sentimento"
+                  },
+                  {
+                    "parameterName": "sentimento",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ba31be5ef10dbf4d6_sentimento"
+                  },
+                  {
+                    "parameterName": "sentimento",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ea39e893282389f1c_sentimento"
+                  },
+                  {
+                    "parameterName": "sentimento",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f41a3baa38d67d2f6f6_sentimento"
+                  },
+                  {
+                    "parameterName": "sentimento",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f1830aa9fe14b8ba71214e63e80834_sentimento"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 0,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_periodo",
+            "queries": [
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f2fbe0c03ff45052c41_periodo",
+                "query": {
+                  "datasetName": "kpis",
+                  "parameters": [
+                    {
+                      "name": "periodo",
+                      "keyword": "periodo"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f32ab7a2288e0ea6e26_periodo",
+                "query": {
+                  "datasetName": "trend_score",
+                  "parameters": [
+                    {
+                      "name": "periodo",
+                      "keyword": "periodo"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3590867ac7d3037cfb_periodo",
+                "query": {
+                  "datasetName": "trend_themes",
+                  "parameters": [
+                    {
+                      "name": "periodo",
+                      "keyword": "periodo"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f38a9ad57102f1143f4_periodo",
+                "query": {
+                  "datasetName": "trend_themes_abs",
+                  "parameters": [
+                    {
+                      "name": "periodo",
+                      "keyword": "periodo"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ba31be5ef10dbf4d6_periodo",
+                "query": {
+                  "datasetName": "trend_sentiment",
+                  "parameters": [
+                    {
+                      "name": "periodo",
+                      "keyword": "periodo"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ea39e893282389f1c_periodo",
+                "query": {
+                  "datasetName": "trend_vol",
+                  "parameters": [
+                    {
+                      "name": "periodo",
+                      "keyword": "periodo"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f41a3baa38d67d2f6f6_periodo",
+                "query": {
+                  "datasetName": "reader",
+                  "parameters": [
+                    {
+                      "name": "periodo",
+                      "keyword": "periodo"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f1830aa9fe14b8ba71214e63e80834_periodo",
+                "query": {
+                  "datasetName": "trend_themes_combo",
+                  "parameters": [
+                    {
+                      "name": "periodo",
+                      "keyword": "periodo"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Período"
+              },
+              "version": 2,
+              "selection": {
+                "defaultSelection": {
+                  "range": {
+                    "dataType": "DATE",
+                    "min": {
+                      "value": "now-90d/d"
+                    },
+                    "max": {
+                      "value": "now/d"
+                    }
+                  }
+                }
+              },
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "parameterName": "periodo",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f2fbe0c03ff45052c41_periodo"
+                  },
+                  {
+                    "parameterName": "periodo",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f32ab7a2288e0ea6e26_periodo"
+                  },
+                  {
+                    "parameterName": "periodo",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3590867ac7d3037cfb_periodo"
+                  },
+                  {
+                    "parameterName": "periodo",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f38a9ad57102f1143f4_periodo"
+                  },
+                  {
+                    "parameterName": "periodo",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ba31be5ef10dbf4d6_periodo"
+                  },
+                  {
+                    "parameterName": "periodo",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f3ea39e893282389f1c_periodo"
+                  },
+                  {
+                    "parameterName": "periodo",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f182f112b71f41a3baa38d67d2f6f6_periodo"
+                  },
+                  {
+                    "parameterName": "periodo",
+                    "queryName": "parameter_dashboards/01f1822e23281b84862d425ca9ef6f5d/datasets/01f1830aa9fe14b8ba71214e63e80834_periodo"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 4,
+            "height": 1
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    }
+  }
+}

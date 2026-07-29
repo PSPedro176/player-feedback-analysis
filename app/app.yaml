@@ -1,0 +1,21 @@
+command:
+  - "python"
+  - "-m"
+  - "uvicorn"
+  - "app:app"
+  - "--host"
+  - "0.0.0.0"
+  - "--port"
+  - "8000"
+
+env:
+  - name: SQL_WAREHOUSE_ID
+    value: "TODO-preencher-com-seu-warehouse-id"
+  - name: DASHBOARD_ID
+    value: "TODO-preencher-com-seu-dashboard-id"
+  - name: GENIE_SPACE_ID
+    value: "TODO-preencher-com-seu-genie-space-id"
+  - name: CATALOG
+    value: "player_feedback_catalog"
+  - name: SCHEMA
+    value: "player_feedback"

@@ -1,0 +1,23 @@
+# ---------------------------------------------------------------------------
+# Databricks App — Player Feedback Analysis
+# Consolidador final do pipeline: relatórios semanais por jogo, AI/BI Dashboard
+# e Genie embeddados, e KPIs lidos ao vivo das tabelas Delta via SQL Warehouse.
+# Backend FastAPI + frontend React/Vite. Código-fonte em ../app.
+# ---------------------------------------------------------------------------
+resources:
+  apps:
+    pf_app:
+      name: player-feedback-analysis
+      description: >-
+        Player Feedback Analysis. Relatórios semanais por jogo,
+        dashboard AI/BI e Genie embeddados, KPIs ao vivo das tabelas enriquecidas.
+      source_code_path: ../app
+
+      # Recursos consumidos pelo app. O SQL Warehouse é referenciado pelo backend
+      # via SQL_WAREHOUSE_ID (env do app.yaml); aqui garantimos a permissão de uso
+      # do service principal do app sobre o warehouse serverless da demo.
+      resources:
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
