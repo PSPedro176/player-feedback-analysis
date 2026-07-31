@@ -75,6 +75,12 @@ variables:
 include:
   - resources/*.yml
 
+# Força o envio do build do frontend (app/frontend/dist) ao workspace, mesmo
+# ele estando no .gitignore — o Databricks App serve esse build estático.
+sync:
+  include:
+    - app/frontend/dist/**
+
 targets:
   dev:
     mode: development

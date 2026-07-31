@@ -80,8 +80,9 @@ Google Play Store ──(google-play-scraper)──▶ reviews_raw (bronze, appe
 
 ```bash
 # Buildar o frontend da app (OBRIGATÓRIO antes do deploy).
-# O Databricks App serve o build estático de app/frontend/dist, e o
-# `bundle deploy` só envia esse diretório se ele existir localmente.
+# O Databricks App serve o build estático de app/frontend/dist. O bundle envia
+# esse diretório via `sync.include` no databricks.yml, então ele precisa existir
+# localmente no deploy (o dist não é versionado no git — é artefato de build).
 cd app/frontend && npm install && npm run build && cd ../..
 
 # Apontar o dashboard AI/BI para o SEU catálogo/schema (OBRIGATÓRIO antes do
@@ -113,6 +114,20 @@ databricks bundle run pf_app -t dev -p <seu-profile>
 4. Após deploy:
    - Copie o `dashboard_id` do dashboard criado (`src/dashboard/player_feedback.lvdash.json`) e preencha `DASHBOARD_ID` em `app/app.yaml`
    - Se usar Genie, copie o `genie_space_id` e preencha em `app/app.yaml`
+   - Pegue o job_id do `pf_ingest_and_enrich` (`databricks jobs list -p <seu-profile>`)
+     e preencha `INGEST_JOB_ID` em `app/app.yaml` — a aba **Gerenciar** do App usa
+     esse id para disparar a ingestão ao adicionar um jogo.
+   - Conceda ao service principal do App: `MODIFY` no schema (para gravar
+     `games_config`/`games_meta`) e `CAN_MANAGE_RUN` no job de ingestão (para
+     dispará-lo). Reaplique `app/app.yaml` com `databricks bundle deploy`.
+
+### Aba "Gerenciar" — adicionar jogos pela UI
+
+O App tem três telas: **Visão geral**, **AI/BI** e **Gerenciar**. Em *Gerenciar*
+você adiciona um jogo pelo *package name* da Play Store (ex: `com.kiloo.subwaysurf`):
+o App valida o package na Play Store, grava em `games_config` (unida aos jogos do
+`databricks.yml` na ingestão), captura a logo oficial e dispara a ingestão. Também
+lista e remove jogos adicionados por ali (dados históricos permanecem nas tabelas).
 
 ## Deploy
 

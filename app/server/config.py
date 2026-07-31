@@ -12,10 +12,14 @@ WAREHOUSE_ID = os.environ.get("SQL_WAREHOUSE_ID", "TODO-preencher-com-seu-wareho
 DASHBOARD_ID = os.environ.get("DASHBOARD_ID", "TODO-preencher-com-seu-dashboard-id")
 CATALOG = os.environ.get("CATALOG", "player_feedback_catalog")
 SCHEMA = os.environ.get("SCHEMA", "player_feedback")
+# job_id do pf_ingest_and_enrich — para a tela "Gerenciar" disparar a ingestão
+# ao adicionar um jogo. Vazio = botão de disparo desabilitado (app só salva).
+INGEST_JOB_ID = os.environ.get("INGEST_JOB_ID", "")
 
 REVIEWS_TABLE = f"{CATALOG}.{SCHEMA}.reviews_enriched"
 REPORTS_TABLE = f"{CATALOG}.{SCHEMA}.weekly_reports"
 GAMES_META_TABLE = f"{CATALOG}.{SCHEMA}.games_meta"
+GAMES_CONFIG_TABLE = f"{CATALOG}.{SCHEMA}.games_config"
 
 
 @lru_cache(maxsize=1)

@@ -3,12 +3,14 @@ import { api, type AppConfig } from "./api";
 import { Spinner } from "./components/ui";
 import Overview from "./components/Overview";
 import Embed from "./components/Embed";
+import Manage from "./components/Manage";
 
-type Tab = "overview" | "dashboard";
+type Tab = "overview" | "dashboard" | "manage";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Visão geral" },
   { id: "dashboard", label: "AI/BI" },
+  { id: "manage", label: "Gerenciar" },
 ];
 
 export default function App() {
@@ -74,6 +76,7 @@ export default function App() {
                 note="Tendências, sentimento e leitura de comentários — com Genie integrado, servido por Databricks AI/BI"
               />
             )}
+            {tab === "manage" && <Manage />}
           </div>
         )}
       </main>

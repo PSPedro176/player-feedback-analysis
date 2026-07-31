@@ -75,6 +75,27 @@ COMMENT 'Dimensão: metadados (ícone/título) dos jogos monitorados, da Play St
 
 # COMMAND ----------
 
+# MAGIC %md ## games_config — jogos adicionados pela UI do App
+# MAGIC Jogos configurados dinamicamente pelo usuário na tela "Gerenciar" do App.
+# MAGIC O job de extração une estes jogos com os definidos em `databricks.yml`
+# MAGIC (variável `games`), então o App pode adicionar/remover jogos sem editar o
+# MAGIC bundle. `source` distingue a origem ('ui' vs 'bundle') para referência.
+
+# COMMAND ----------
+
+spark.sql(f"""
+CREATE TABLE IF NOT EXISTS `{catalog}`.`{schema}`.games_config (
+    game         STRING    COMMENT 'Nome do jogo (chave do mapa games)',
+    package_name STRING    COMMENT 'Package name na Play Store',
+    source       STRING    COMMENT "Origem: 'ui' (adicionado pelo App) | 'bundle'",
+    _added_at    TIMESTAMP COMMENT 'Momento em que o jogo foi adicionado'
+)
+USING DELTA
+COMMENT 'Jogos monitorados configurados dinamicamente pela UI do App.'
+""")
+
+# COMMAND ----------
+
 # MAGIC %md ## weekly_reports — saída do relatório semanal
 
 # COMMAND ----------
@@ -107,5 +128,5 @@ if "window_start" not in existing_cols:
 # COMMAND ----------
 
 print("Setup concluído.")
-for t in ["reviews_raw", "games_meta", "weekly_reports"]:
+for t in ["reviews_raw", "games_meta", "games_config", "weekly_reports"]:
     display(spark.sql(f"DESCRIBE TABLE `{catalog}`.`{schema}`.{t}"))

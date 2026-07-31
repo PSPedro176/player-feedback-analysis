@@ -62,6 +62,16 @@ games = _parse(dbutils.widgets.get("games"))            # {nome: package_name}
 languages = _parse(dbutils.widgets.get("languages"))    # [idioma, ...]
 
 target_table = f"`{catalog}`.`{schema}`.reviews_raw"
+config_table = f"`{catalog}`.`{schema}`.games_config"
+
+# Une os jogos do databricks.yml com os adicionados pela UI (games_config).
+# A tabela pode não existir ainda na primeiríssima execução (antes do setup);
+# nesse caso seguimos só com os do bundle.
+try:
+    for row in spark.sql(f"SELECT game, package_name FROM {config_table}").collect():
+        games[row["game"]] = row["package_name"]
+except Exception as e:
+    print(f"games_config indisponível ({e}); usando só os jogos do bundle.")
 
 print(f"Destino: {target_table}")
 print(f"Jogos: {games}")

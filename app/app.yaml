@@ -19,3 +19,7 @@ env:
     value: "player_feedback_catalog"
   - name: SCHEMA
     value: "player_feedback"
+  # job_id do pf_ingest_and_enrich — a tela "Gerenciar" usa para disparar a
+  # ingestão ao adicionar um jogo. Pegue com `databricks jobs list` após o deploy.
+  - name: INGEST_JOB_ID
+    value: "TODO-preencher-com-o-job-id-do-pf_ingest_and_enrich"

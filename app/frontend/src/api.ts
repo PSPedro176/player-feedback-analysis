@@ -48,10 +48,36 @@ export interface Review {
   language: string;
 }
 
+export interface ConfiguredGame {
+  name: string;
+  package: string;
+  icon: string | null;
+}
+
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path);
   if (!res.ok) {
     throw new Error(`Erro ${res.status} em ${path}`);
+  }
+  return res.json();
+}
+
+async function send<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    // O backend devolve {detail: "..."} em erros (FastAPI HTTPException).
+    let detail = `Erro ${res.status}`;
+    try {
+      const j = await res.json();
+      if (j?.detail) detail = j.detail;
+    } catch {
+      /* corpo não-JSON */
+    }
+    throw new Error(detail);
   }
   return res.json();
 }
@@ -61,4 +87,13 @@ export const api = {
   overview: () => get<Overview>("/api/overview"),
   reports: () => get<WeeklyReport[]>("/api/reports"),
   reviews: (game: string) => get<Review[]>(`/api/reviews/${encodeURIComponent(game)}`),
+  gamesConfig: () => get<ConfiguredGame[]>("/api/games/config"),
+  addGame: (pkg: string) =>
+    send<{ game: ConfiguredGame; ingestion_run_id: number | null }>(
+      "POST",
+      "/api/games",
+      { package: pkg }
+    ),
+  removeGame: (game: string) =>
+    send<{ removed: string }>("DELETE", `/api/games/${encodeURIComponent(game)}`),
 };

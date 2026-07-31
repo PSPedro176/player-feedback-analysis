@@ -1,5 +1,6 @@
 """Rotas de API: config de embeds, jogos, KPIs de overview e relatórios."""
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from ..config import (
     DASHBOARD_ID,
@@ -7,7 +8,14 @@ from ..config import (
     REVIEWS_TABLE,
     get_workspace_host,
 )
-from ..games import get_game_names, get_games
+from ..games import (
+    add_game,
+    get_game_names,
+    get_games,
+    list_configured_games,
+    remove_game,
+    trigger_ingestion,
+)
 from ..sql import run_query
 
 router = APIRouter()
@@ -115,3 +123,48 @@ def recent_reviews(game: str, limit: int = 8):
         """,
         parameters=[{"name": "game", "value": game}],
     )
+
+
+# --- Gerenciamento de jogos monitorados (tela "Gerenciar") -------------------
+
+
+class AddGamePayload(BaseModel):
+    package: str
+
+
+@router.get("/games/config")
+def games_config():
+    """Jogos configurados via UI (games_config) — para a tela de gerenciamento."""
+    return list_configured_games()
+
+
+@router.post("/games")
+def create_game(payload: AddGamePayload):
+    """Adiciona um jogo pelo package name da Play Store e dispara a ingestão.
+
+    Valida o package na Play Store (captura nome/ícone), grava em games_config
+    + games_meta e dispara o job de ingestão. Retorna o jogo criado e se o job
+    foi disparado.
+    """
+    package = payload.package.strip()
+    if not package:
+        raise HTTPException(status_code=400, detail="Package name vazio.")
+    try:
+        game = add_game(package)
+    except ValueError as e:
+        # Package inexistente / inválido na Play Store.
+        raise HTTPException(status_code=422, detail=str(e))
+    run = trigger_ingestion()
+    return {"game": game, "ingestion_run_id": run}
+
+
+@router.delete("/games/{game}")
+def delete_game(game: str):
+    """Remove um jogo do monitoramento (games_config). Dados históricos ficam."""
+    removed = remove_game(game)
+    if not removed:
+        raise HTTPException(
+            status_code=404,
+            detail="Jogo não encontrado na configuração da UI (pode vir do bundle).",
+        )
+    return {"removed": game}

@@ -5,9 +5,10 @@ __pycache__/
 node_modules/
 .venv/
 *.egg-info/
-# NOTA: app/frontend/dist NÃO é ignorado — o Databricks App serve o build
-# estático e o `bundle deploy` respeita o .gitignore. Rode `npm run build`
-# em app/frontend antes de fazer o deploy (ver README).
+# Build do frontend: não versionado (é artefato). O bundle o envia ao App via
+# `sync.include` no databricks.yml, então continua sendo deployado mesmo
+# ignorado aqui. Rode `npm run build` em app/frontend antes do deploy (README).
+app/frontend/dist/
 .env
 .env.local
 env.local
