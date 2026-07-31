@@ -15,6 +15,7 @@ SCHEMA = os.environ.get("SCHEMA", "player_feedback")
 
 REVIEWS_TABLE = f"{CATALOG}.{SCHEMA}.reviews_enriched"
 REPORTS_TABLE = f"{CATALOG}.{SCHEMA}.weekly_reports"
+GAMES_META_TABLE = f"{CATALOG}.{SCHEMA}.games_meta"
 
 
 @lru_cache(maxsize=1)

@@ -84,6 +84,13 @@ Google Play Store ──(google-play-scraper)──▶ reviews_raw (bronze, appe
 # `bundle deploy` só envia esse diretório se ele existir localmente.
 cd app/frontend && npm install && npm run build && cd ../..
 
+# Apontar o dashboard AI/BI para o SEU catálogo/schema (OBRIGATÓRIO antes do
+# deploy). O JSON do dashboard usa os placeholders __CATALOG__ e __SCHEMA__ nas
+# 12 queries; substitua-os pelos mesmos valores de `catalog`/`schema` do
+# databricks.yml (senão os widgets da aba AI/BI falham com TABLE_OR_VIEW_NOT_FOUND).
+sed -i '' 's/__CATALOG__/SEU_CATALOGO/g; s/__SCHEMA__/SEU_SCHEMA/g' src/dashboard/player_feedback.lvdash.json
+# (Linux: use `sed -i` sem as aspas vazias.)
+
 # Validar o bundle
 databricks bundle validate -t dev -p <seu-profile>
 

@@ -23,7 +23,7 @@
 import json
 import time
 
-from google_play_scraper import reviews, Sort
+from google_play_scraper import app, reviews, Sort
 from pyspark.sql import functions as F
 from pyspark.sql.types import (
     StructType, StructField, StringType, IntegerType, TimestampType,
@@ -86,6 +86,48 @@ for row in existing:
 is_first_load = len(last_comment) == 0
 print(f"Primeira carga? {is_first_load}")
 print(f"last_comment por jogo: {last_comment}")
+
+# COMMAND ----------
+
+# MAGIC %md ## Metadados dos jogos — ícone/título oficiais da Play Store
+# MAGIC Uma consulta `app(package)` por jogo captura o ícone e o título oficiais,
+# MAGIC gravados em `games_meta`. O App lê essa tabela para exibir a logo de cada
+# MAGIC jogo automaticamente — basta configurar o jogo em `databricks.yml`.
+
+# COMMAND ----------
+
+meta_table = f"`{catalog}`.`{schema}`.games_meta"
+meta_schema = StructType([
+    StructField("game", StringType()),
+    StructField("package_name", StringType()),
+    StructField("icon", StringType()),
+    StructField("title", StringType()),
+])
+
+meta_rows = []
+for game, package_name in games.items():
+    # Acesso explícito por chave: se a Play Store mudar o payload, falha alto.
+    info = app(package_name, lang=languages[0], country=country)
+    meta_rows.append({
+        "game": game,
+        "package_name": package_name,
+        "icon": info["icon"],
+        "title": info["title"],
+    })
+    print(f"  meta {game:14s} → {info['icon']}")
+
+if meta_rows:
+    meta_df = (spark.createDataFrame(meta_rows, schema=meta_schema)
+               .withColumn("_updated_at", F.current_timestamp()))
+    meta_df.createOrReplaceTempView("games_meta_updates")
+    # Upsert por game: mantém a linha atualizada a cada run.
+    spark.sql(f"""
+        MERGE INTO {meta_table} AS t
+        USING games_meta_updates AS s
+        ON t.game = s.game
+        WHEN MATCHED THEN UPDATE SET *
+        WHEN NOT MATCHED THEN INSERT *
+    """)
 
 # COMMAND ----------
 

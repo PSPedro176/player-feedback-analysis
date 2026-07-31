@@ -54,6 +54,27 @@ COMMENT 'Bronze: reviews da Play Store, deduplicados por review_id na fonte.'
 
 # COMMAND ----------
 
+# MAGIC %md ## games_meta — dimensão de metadados dos jogos
+# MAGIC Uma linha por jogo monitorado, com ícone e título oficiais da Play Store.
+# MAGIC Populada pelo job de extração (via `google_play_scraper.app`) e lida pelo
+# MAGIC App para exibir a logo de cada jogo automaticamente.
+
+# COMMAND ----------
+
+spark.sql(f"""
+CREATE TABLE IF NOT EXISTS `{catalog}`.`{schema}`.games_meta (
+    game         STRING    COMMENT 'Nome do jogo (chave do mapa games)',
+    package_name STRING    COMMENT 'Package name na Play Store',
+    icon         STRING    COMMENT 'URL do ícone oficial da Play Store',
+    title        STRING    COMMENT 'Título oficial do app na Play Store',
+    _updated_at  TIMESTAMP COMMENT 'Momento da última atualização dos metadados'
+)
+USING DELTA
+COMMENT 'Dimensão: metadados (ícone/título) dos jogos monitorados, da Play Store.'
+""")
+
+# COMMAND ----------
+
 # MAGIC %md ## weekly_reports — saída do relatório semanal
 
 # COMMAND ----------
@@ -86,5 +107,5 @@ if "window_start" not in existing_cols:
 # COMMAND ----------
 
 print("Setup concluído.")
-for t in ["reviews_raw", "weekly_reports"]:
+for t in ["reviews_raw", "games_meta", "weekly_reports"]:
     display(spark.sql(f"DESCRIBE TABLE `{catalog}`.`{schema}`.{t}"))
