@@ -1,0 +1,79 @@
+# =============================================================================
+# Player Feedback Analysis
+# Coleta reviews da Google Play Store → bronze → enriquecimento com AI functions
+# (SDP) → relatório semanal → Genie + AI/BI + App. Os jogos monitorados são
+# cadastrados pela interface do App (Lakebase + CDF), não mais fixos aqui.
+# Tudo provisionado via Databricks Asset Bundles.
+# =============================================================================
+bundle:
+  name: player_feedback
+
+variables:
+  catalog:
+    description: Catálogo Unity Catalog da demo (pré-provisionado no seu workspace)
+    default: player_feedback_catalog
+  schema:
+    description: Schema onde vivem as tabelas da demo
+    default: player_feedback
+
+  # --- AI ---
+  ai_model:
+    description: Endpoint de modelo usado por ai_query
+    default: databricks-meta-llama-3-3-70b-instruct
+
+  # --- Extração ---
+  languages:
+    description: Idiomas a iterar na API (JSON; reviews são particionados por idioma)
+    default: '["pt", "en", "es"]'
+  country:
+    description: País usado nas chamadas à API
+    default: br
+  page_count:
+    description: Reviews por página (máx. 200 na API reviews())
+    default: 200
+  sleep_ms:
+    description: Pausa entre páginas para evitar HTTP 429 (milissegundos)
+    default: 300
+  backfill_months:
+    description: >-
+      Janela de backfill para jogos NOVOS (sem reviews ainda): coleta comentários
+      até `hoje - backfill_months`. Jogos já existentes continuam incrementais
+      (param via watermark last_comment). Flexibilizar por data na UI = v2.
+    default: 3
+  backfill_max_per_game:
+    description: >-
+      Teto de segurança (generoso) de reviews por jogo/idioma numa carga de
+      backfill, como válvula contra runaway/429 em jogos de altíssimo volume.
+      A coleta para na DATA (backfill_months) OU neste teto, o que vier primeiro.
+      3000 = ceil(3000/200) = 15 páginas/idioma.
+    default: 3000
+
+  # --- Relatório semanal ---
+  sample_size:
+    description: Amostra aleatória de comentários por jogo no relatório semanal
+    default: 700
+  report_window_days:
+    description: Janela do relatório semanal (dias)
+    default: 7
+
+  # --- Cadências (cron Quartz) ---
+  extract_cron:
+    description: Cron do job de extração + enriquecimento (diário 06:00 BRT)
+    default: "0 0 6 * * ?"
+  report_cron:
+    description: Cron do relatório semanal (segunda-feira 07:00 BRT)
+    default: "0 0 7 ? * MON"
+  timezone:
+    default: America/Sao_Paulo
+
+include:
+  - resources/*.yml
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://TODO-preencher-com-seu-workspace.cloud.databricks.com
+    run_as:
+      user_name: TODO-preencher-com-seu-email@empresa.com
