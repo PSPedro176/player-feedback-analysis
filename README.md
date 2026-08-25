@@ -84,12 +84,6 @@ databricks bundle run pf_app   -t dev -p <profile>   # sobe o App
 
 Depois é só abrir o App → aba **Jogos** → adicionar um ou mais jogos → **Disparar coleta agora**.
 
-> **Nota — Lakebase Autoscaling + CDF:** o `pf_setup` cria o projeto Autoscaling
-> (project/branch/endpoint/database), a tabela `public.games`, o role do SP e a **CDF config**
-> (`w.postgres.create_cdf_config`) que materializa `lb_games_history` no UC. A view `games_current`
-> é criada quando essa tabela já existe — se o CDF ainda não processou a 1ª mudança, adicione um jogo
-> pelo App e re-rode `pf_setup`. Requer SDK `databricks-sdk>=0.133.0` (o notebook faz `%pip install -U`).
-
 ## 4. Adicionar um jogo pelo App
 
 Na aba **Jogos** do App:
