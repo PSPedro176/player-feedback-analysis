@@ -263,12 +263,12 @@ print(f"Grants de UC aplicados ao SP do App ({sp}).")
 
 # COMMAND ----------
 
-# Publica por ID (vem do bundle: ${resources.dashboards.pf_dashboard.id}). Sem lógica de nome.
+# Publica por ID (vem do bundle: ${resources.dashboards.pf_dashboard.dashboard_id}). Sem lógica de nome.
 # publish é idempotente (re-publicar é ok); falha alto se o id não veio.
 if not dashboard_id:
     raise RuntimeError(
         "dashboard_id vazio — o pf_setup deve ser rodado pelo bundle "
-        "(passa ${resources.dashboards.pf_dashboard.id})."
+        "(passa ${resources.dashboards.pf_dashboard.dashboard_id})."
     )
 w.lakeview.publish(dashboard_id, embed_credentials=True, warehouse_id=warehouse_id or None)
 print(f"Dashboard publicado ({dashboard_id}).")

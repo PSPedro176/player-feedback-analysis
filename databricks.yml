@@ -11,7 +11,7 @@ bundle:
 variables:
   catalog:
     description: Catálogo Unity Catalog da demo (pré-provisionado no seu workspace)
-    default: perdomo_demos_workspace_catalog
+    default: player_feedback_catalog
   schema:
     description: Schema onde vivem as tabelas da demo
     default: player_feedback
