@@ -7,6 +7,12 @@
 # =============================================================================
 bundle:
   name: player_feedback
+  # Exige a CLI onde a referência de dashboard resolve corretamente. Em
+  # v1.13.0, ${resources.dashboards.pf_dashboard.id} resolvia; a partir de
+  # v1.14.1 os dashboards só expõem .dashboard_id (usado nos resources) e o
+  # .id resolveria vazio. O pin faz `databricks bundle` falhar cedo, com
+  # mensagem clara, numa CLI incompatível — em vez de deploy quebrado.
+  databricks_cli_version: ">= 1.14.1"
 
 variables:
   catalog:
