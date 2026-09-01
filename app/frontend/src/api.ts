@@ -48,8 +48,30 @@ export interface Review {
   language: string;
 }
 
+export interface CollectRun {
+  run_id: number;
+  run_url: string;
+}
+
+export interface GameInput {
+  name: string;
+  package: string;
+}
+
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path);
+  if (!res.ok) {
+    throw new Error(`Erro ${res.status} em ${path}`);
+  }
+  return res.json();
+}
+
+async function send<T>(path: string, method: string, body?: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method,
+    headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
   if (!res.ok) {
     throw new Error(`Erro ${res.status} em ${path}`);
   }
@@ -61,4 +83,9 @@ export const api = {
   overview: () => get<Overview>("/api/overview"),
   reports: () => get<WeeklyReport[]>("/api/reports"),
   reviews: (game: string) => get<Review[]>(`/api/reviews/${encodeURIComponent(game)}`),
+  games: () => get<Game[]>("/api/games"),
+  addGames: (items: GameInput[]) => send<{ added: number }>("/api/games", "POST", items),
+  removeGame: (pkg: string) =>
+    send<{ removed: string }>(`/api/games/${encodeURIComponent(pkg)}`, "DELETE"),
+  runCollect: () => send<CollectRun>("/api/jobs/collect/run", "POST", {}),
 };

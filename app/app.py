@@ -10,9 +10,19 @@ from fastapi.staticfiles import StaticFiles
 
 from server.routes.api import router as api_router
 
-app = FastAPI(title="Wildlife — Player Feedback Analysis")
+app = FastAPI(title="Player Feedback Analysis")
 
 app.include_router(api_router, prefix="/api")
+
+
+@app.on_event("startup")
+def _startup():
+    """Garante a tabela de cadastro no Lakebase (idempotente); não derruba o app se falhar."""
+    try:
+        from server import lakebase
+        lakebase.ensure_games_table()
+    except Exception as e:  # noqa: BLE001
+        print(f"[startup] ensure_games_table falhou (seguindo mesmo assim): {e}")
 
 
 @app.get("/api/health")

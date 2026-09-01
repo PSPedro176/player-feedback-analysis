@@ -1,0 +1,82 @@
+# ---------------------------------------------------------------------------
+# Camada de apresentação:
+# - AI/BI Dashboard (Lakeview) — game-agnóstico (descobre os jogos por DISTINCT
+#   game na tabela enriquecida), não muda ao adicionar/remover jogos.
+# - Databricks App (FastAPI + React) — relatórios por jogo, dashboard AI/BI +
+#   Genie embeddados, KPIs ao vivo e a tela de gestão de jogos monitorados.
+#
+# Os resource bindings do App concedem, via bundle, TODAS as permissões que o
+# service principal precisa: usar o warehouse, disparar o job de coleta, conectar
+# no Lakebase e consultar o endpoint de modelo. Os grants de UC (SELECT no schema,
+# READ no volume) são aplicados pelo pf_setup.
+# ---------------------------------------------------------------------------
+resources:
+  dashboards:
+    pf_dashboard:
+      display_name: "Player Feedback Analysis"
+      warehouse_id: ${resources.sql_warehouses.pf_warehouse.id}
+      file_path: ../src/player_feedback.lvdash.json
+      # As queries do JSON usam tabelas SEM qualificação (ex.: reviews_enriched);
+      # o catálogo/schema são injetados no deploy a partir das variáveis do bundle.
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${var.schema}
+      # Queries do embed rodam com as credenciais do publicador (o pf_setup publica
+      # o dashboard), então o App embeda sem exigir acesso a dados por visualizador.
+      embed_credentials: true
+
+  apps:
+    pf_app:
+      name: player-feedback-analysis
+      description: >-
+        Player Feedback Analysis. Relatórios semanais por jogo, dashboard AI/BI
+        e Genie embeddados, KPIs ao vivo e gestão de jogos monitorados.
+      source_code_path: ../app
+
+      resources:
+        - name: sql-warehouse
+          sql_warehouse:
+            id: ${resources.sql_warehouses.pf_warehouse.id}
+            permission: CAN_USE
+        - name: ingest-job
+          job:
+            id: ${resources.jobs.pf_ingest_and_enrich.id}
+            permission: CAN_MANAGE_RUN
+        - name: model-endpoint
+          serving_endpoint:
+            name: ${var.ai_model}
+            permission: CAN_QUERY
+      # Sem binding `database`: o Lakebase Autoscaling não tem recurso DAB. O App
+      # conecta via o Postgres role do SP (criado no pf_setup) + generate_database_credential.
+
+      # Config do App definida AQUI (não no app.yaml) para poder usar referências
+      # automáticas do bundle: DASHBOARD_ID vem de ${resources.dashboards.pf_dashboard.id},
+      # e os IDs de recursos vêm por referências automáticas do bundle.
+      config:
+        command:
+          - python
+          - -m
+          - uvicorn
+          - app:app
+          - --host
+          - "0.0.0.0"
+          - --port
+          - "8000"
+        env:
+          - name: DASHBOARD_ID
+            value: ${resources.dashboards.pf_dashboard.id}
+          - name: SQL_WAREHOUSE_ID
+            value_from: sql-warehouse
+          - name: INGEST_JOB_ID
+            value_from: ingest-job
+          - name: CATALOG
+            value: ${var.catalog}
+          - name: SCHEMA
+            value: ${var.schema}
+          - name: GAME_LOGOS_VOLUME
+            value: game_logos
+          - name: LAKEBASE_PROJECT
+            value: pf-games
+          - name: LAKEBASE_BRANCH
+            value: production
+          - name: LAKEBASE_DATABASE
+            value: databricks_postgres

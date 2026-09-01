@@ -106,7 +106,7 @@ for game, a in agg_rows.items():
 
     period = f"{a['window_start']} to {a['window_end']}"
     prompt = (
-        f"You are a product analyst at Wildlife Studios. Below is a random sample "
+        f"You are a product analyst at a mobile game studio. Below is a random sample "
         f"of player reviews for the game '{game}' collected in the last {window_days} "
         f"days (period covered: {period}). "
         f"Write a consolidated report in Brazilian Portuguese, between 20 and 30 lines, "

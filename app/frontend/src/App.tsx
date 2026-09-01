@@ -1,37 +1,47 @@
 import { useEffect, useState } from "react";
-import { api, type AppConfig } from "./api";
+import { api, type AppConfig, type Game } from "./api";
 import { Spinner } from "./components/ui";
 import Overview from "./components/Overview";
 import Embed from "./components/Embed";
+import ManageGames from "./components/ManageGames";
 
-type Tab = "overview" | "dashboard";
+type Tab = "reports" | "dashboard" | "games";
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "overview", label: "Visão geral" },
+  { id: "reports", label: "Relatórios" },
   { id: "dashboard", label: "AI/BI" },
+  { id: "games", label: "Jogos" },
 ];
 
 export default function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
-  const [tab, setTab] = useState<Tab>("overview");
+  const [games, setGames] = useState<Game[]>([]);
+  const [tab, setTab] = useState<Tab>("reports");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.config().then(setConfig).catch((e) => setError(e.message));
+    api
+      .config()
+      .then((c) => {
+        setConfig(c);
+        setGames(c.games);
+      })
+      .catch((e) => setError(e.message));
   }, []);
+
+  const reloadGames = () => api.games().then(setGames).catch((e) => setError(e.message));
 
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
-      {/* Header — editorial, alto contraste, sem gradiente */}
-      <header className="sticky top-0 z-20 border-b border-line bg-paper/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-line bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-content items-center justify-between gap-6 px-6 py-4">
           <div className="flex items-baseline gap-3">
-            <span className="brand-title text-2xl leading-none">WILDLIFE</span>
-            <span className="hidden text-sm font-semibold uppercase tracking-[0.18em] text-muted sm:inline">
-              Player Feedback
+            <span className="brand-title text-2xl leading-none">PLAYER FEEDBACK</span>
+            <span className="hidden text-sm font-semibold uppercase tracking-[0.12em] text-brand sm:inline">
+              Analysis
             </span>
           </div>
-          <nav className="flex items-center gap-6">
+          <nav className="flex items-center gap-6" aria-label="Navegação principal">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -42,7 +52,7 @@ export default function App() {
               >
                 {t.label}
                 {tab === t.id && (
-                  <span className="absolute -bottom-[17px] left-0 h-[2px] w-full bg-ink" />
+                  <span className="absolute -bottom-[17px] left-0 h-[2px] w-full bg-brand" />
                 )}
               </button>
             ))}
@@ -56,7 +66,7 @@ export default function App() {
         }`}
       >
         {error && (
-          <div className="border border-bad/30 bg-bad/5 p-4 text-sm text-bad">
+          <div className="border border-bad/30 bg-brandSoft p-4 text-sm text-bad" role="alert">
             Erro ao inicializar: {error}
           </div>
         )}
@@ -66,7 +76,7 @@ export default function App() {
           </div>
         ) : (
           <div key={tab} className="animate-fade">
-            {tab === "overview" && <Overview games={config.games} />}
+            {tab === "reports" && <Overview games={games} />}
             {tab === "dashboard" && (
               <Embed
                 url={config.dashboard_embed_url}
@@ -74,15 +84,15 @@ export default function App() {
                 note="Tendências, sentimento e leitura de comentários — com Genie integrado, servido por Databricks AI/BI"
               />
             )}
+            {tab === "games" && <ManageGames games={games} onChange={reloadGames} />}
           </div>
         )}
       </main>
 
-      {/* Footer — carvão, como o site da Wildlife */}
-      <footer className="mt-auto bg-ink text-mutedDark">
+      <footer className="mt-auto bg-carbon text-mutedDark">
         <div className="mx-auto flex max-w-content flex-wrap items-center justify-between gap-4 px-6 py-8">
-          <span className="brand-title text-lg text-paper">WILDLIFE</span>
-          <span className="text-xs uppercase tracking-[0.18em]">
+          <span className="brand-title text-lg text-white">PLAYER FEEDBACK</span>
+          <span className="text-xs uppercase tracking-[0.12em]">
             Powered by Databricks · AI Functions · AI/BI · Genie
           </span>
         </div>

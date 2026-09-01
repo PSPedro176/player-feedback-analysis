@@ -1,0 +1,40 @@
+# ---------------------------------------------------------------------------
+# Workflow SEMANAL — relatório consolidado por jogo (ai_query) + coleta de logos.
+# Roda no agendamento semanal E quando disparado pelo fluxo diário ao detectar
+# jogos novos.
+# ---------------------------------------------------------------------------
+resources:
+  jobs:
+    pf_weekly_report:
+      name: pf_weekly_report
+      schedule:
+        quartz_cron_expression: ${var.report_cron}
+        timezone_id: ${var.timezone}
+        pause_status: UNPAUSED
+      tasks:
+        - task_key: weekly_report
+          notebook_task:
+            notebook_path: ../src/weekly_report.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              ai_model: ${var.ai_model}
+              sample_size: ${var.sample_size}
+              report_window_days: ${var.report_window_days}
+
+        - task_key: extract_logos
+          depends_on:
+            - task_key: weekly_report
+          notebook_task:
+            notebook_path: ../src/extract_logos.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+          environment_key: default
+
+      environments:
+        - environment_key: default
+          spec:
+            client: "3"
+            dependencies:
+              - google-play-scraper

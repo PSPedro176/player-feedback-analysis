@@ -1,0 +1,100 @@
+# ---------------------------------------------------------------------------
+# Workflow DIÁRIO — ingestão + enriquecimento (job + pipeline SDP juntos, por
+# serem o mesmo fluxo) + o setup one-off que provisiona as tabelas desse fluxo.
+# ---------------------------------------------------------------------------
+resources:
+  jobs:
+
+    # Setup (one-off) — cria schema, volume e tabelas base, a tabela Postgres de
+    # cadastro no Lakebase, inicia o feed CDF, cria a view games_current e aplica
+    # os grants de UC ao service principal do App. Execução manual:
+    #   databricks bundle run pf_setup -t dev -p <profile>
+    pf_setup:
+      name: pf_setup
+      tasks:
+        - task_key: setup
+          notebook_task:
+            notebook_path: ../src/setup.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              app_name: player-feedback-analysis
+              dashboard_id: ${resources.dashboards.pf_dashboard.id}
+              warehouse_id: ${resources.sql_warehouses.pf_warehouse.id}
+              pg_project: pf-games
+              pg_branch: production
+              pg_database: databricks_postgres
+
+    # Diário — extrai reviews (lendo os jogos de games_current) e dispara o SDP de
+    # enriquecimento. Ao final, se houver jogo novo (sem relatório ainda), dispara
+    # o pf_weekly_report, que gera o relatório e coleta os logos.
+    pf_ingest_and_enrich:
+      name: pf_ingest_and_enrich
+      schedule:
+        quartz_cron_expression: ${var.extract_cron}
+        timezone_id: ${var.timezone}
+        pause_status: UNPAUSED
+      tasks:
+        - task_key: extract
+          notebook_task:
+            notebook_path: ../src/extract_reviews.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              languages: ${var.languages}
+              country: ${var.country}
+              page_count: ${var.page_count}
+              sleep_ms: ${var.sleep_ms}
+              backfill_months: ${var.backfill_months}
+              backfill_max_per_game: ${var.backfill_max_per_game}
+          # google-play-scraper instalado no ambiente serverless da task
+          environment_key: default
+
+        - task_key: enrich
+          depends_on:
+            - task_key: extract
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.pf_enrichment.id}
+
+        # Porta condicional: só segue se a task extract sinalizou jogos novos
+        # (games_current sem relatório em weekly_reports) via taskValue new_games.
+        - task_key: has_new_games
+          depends_on:
+            - task_key: enrich
+          condition_task:
+            left: "{{tasks.extract.values.new_games}}"
+            op: "GREATER_THAN"
+            right: "0"
+
+        # Reaproveita o job semanal: gera relatório + logos para os jogos novos.
+        - task_key: trigger_weekly_report
+          depends_on:
+            - task_key: has_new_games
+              outcome: "true"
+          run_job_task:
+            job_id: ${resources.jobs.pf_weekly_report.id}
+
+      environments:
+        - environment_key: default
+          spec:
+            client: "3"
+            dependencies:
+              - google-play-scraper
+
+  pipelines:
+
+    # SDP — enriquecimento incremental: lê reviews_raw como stream e aplica AI
+    # functions (7 dimensões + sentimento). Faz parte do fluxo diário (task enrich).
+    pf_enrichment:
+      name: pf_enrichment
+      serverless: true
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      continuous: false
+      development: true
+      libraries:
+        - file:
+            path: ../src/enrich_reviews.py
+      configuration:
+        pf.catalog: ${var.catalog}
+        pf.schema: ${var.schema}

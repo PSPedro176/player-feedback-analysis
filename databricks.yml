@@ -1,8 +1,8 @@
 # =============================================================================
-# Player Feedback Analysis — Wildlife
-# Demo inspirada no case Devsisters / Second Dinner / SEGA (DAIS).
-# Fonte: Google Play Store (google-play-scraper) → bronze → enriquecimento com
-# AI functions (SDP) → relatório semanal → Genie + AI/BI + App.
+# Player Feedback Analysis
+# Coleta reviews da Google Play Store → bronze → enriquecimento com AI functions
+# (SDP) → relatório semanal → Genie + AI/BI + App. Os jogos monitorados são
+# cadastrados pela interface do App (Lakebase + CDF), não mais fixos aqui.
 # Tudo provisionado via Databricks Asset Bundles.
 # =============================================================================
 bundle:
@@ -15,22 +15,11 @@ variables:
   schema:
     description: Schema onde vivem as tabelas da demo
     default: player_feedback
-  warehouse_id:
-    description: SQL Warehouse serverless (dashboard, App, consultas ad hoc)
-    default: TODO-preencher-com-seu-warehouse-id
 
   # --- AI ---
   ai_model:
     description: Endpoint de modelo usado por ai_query
     default: databricks-meta-llama-3-3-70b-instruct
-
-  # --- Jogos monitorados (package names da Play Store, todos Wildlife Studios) ---
-  games:
-    description: >-
-      Mapa jogo→package name (JSON). Sniper 3D, Tennis Clash, Zooba e Soccer Clash
-      (lançamento recente). Validados via google-play-scraper. É string JSON porque
-      base_parameters de job só aceita strings; o notebook faz json.loads.
-    default: '{"Sniper 3D": "com.fungames.sniper3d", "Tennis Clash": "com.tfgco.games.sports.free.tennis.clash", "Zooba": "com.wildlife.games.battle.royale.free.zooba", "Soccer Clash": "com.wildlifestudios.soccer"}'
 
   # --- Extração ---
   languages:
@@ -45,13 +34,19 @@ variables:
   sleep_ms:
     description: Pausa entre páginas para evitar HTTP 429 (milissegundos)
     default: 300
+  backfill_months:
+    description: >-
+      Janela de backfill para jogos NOVOS (sem reviews ainda): coleta comentários
+      até `hoje - backfill_months`. Jogos já existentes continuam incrementais
+      (param via watermark last_comment). Flexibilizar por data na UI = v2.
+    default: 3
   backfill_max_per_game:
     description: >-
-      Teto de reviews por jogo/idioma na PRIMEIRA carga (tabela vazia), para a
-      demo não puxar centenas de milhares (Sniper 3D tem 450k). Vira trava dura de
-      páginas (ceil(teto/200)). Em runs incrementais o teto é ignorado (para no
-      last_comment). 600 = 3 páginas/combinação → ~7,2k reviews no total da demo.
-    default: 600
+      Teto de segurança (generoso) de reviews por jogo/idioma numa carga de
+      backfill, como válvula contra runaway/429 em jogos de altíssimo volume.
+      A coleta para na DATA (backfill_months) OU neste teto, o que vier primeiro.
+      3000 = ceil(3000/200) = 15 páginas/idioma.
+    default: 3000
 
   # --- Relatório semanal ---
   sample_size:
@@ -79,6 +74,6 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://TODO-preencher-com-seu-workspace.cloud.databricks.com
+      host: https://fevm-perdomo-demos-workspace.cloud.databricks.com
     run_as:
-      user_name: TODO-preencher-com-seu-email@empresa.com
+      user_name: pedro.perdomo@databricks.com

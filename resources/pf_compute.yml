@@ -1,0 +1,17 @@
+# ---------------------------------------------------------------------------
+# Compute provisionado pelo bundle:
+# - SQL Warehouse serverless (2X-Small) — dashboard, App (KPIs, poll do CDF), ad hoc.
+#
+# O Lakebase NÃO é declarado aqui: o cadastro de jogos usa o tier **Autoscaling**
+# (projects/branches/endpoints), que não tem recurso DAB e é provisionado pelo
+# pf_setup via `w.postgres` (necessário para o Lakebase CDF).
+# ---------------------------------------------------------------------------
+resources:
+  sql_warehouses:
+    pf_warehouse:
+      name: pf_warehouse
+      cluster_size: "2X-Small"
+      warehouse_type: "PRO"
+      enable_serverless_compute: true
+      auto_stop_mins: 10
+      max_num_clusters: 1

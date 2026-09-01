@@ -1,81 +1,105 @@
-# Player Feedback Analysis — Wildlife
+# Player Feedback Analysis
 
-Demo Databricks inspirada no case público **Devsisters / Second Dinner / SEGA — "Player Feedback
-Analysis"**, adaptada para os jogos mobile da **Wildlife Studios**. Coleta reviews da Google Play
-Store, enriquece com **AI Functions**, gera relatórios semanais e serve tudo via **AI/BI Dashboard
-(com Genie integrado)** e um **Databricks App**.
+Demo Databricks que monitora reviews de **qualquer jogo** da Google Play Store: coleta os
+comentários, enriquece com **AI Functions** (7 dimensões + sentimento), gera relatórios semanais
+por jogo e serve tudo num **Databricks App** (com **AI/BI Dashboard + Genie** embeddados). Os jogos
+monitorados são cadastrados **pela própria interface do App** — sem editar código. Tudo provisionado
+via **Databricks Asset Bundles (DABs)**.
 
-Tudo provisionado via **Databricks Asset Bundles (DABs)**.
+## 1. Arquitetura
 
-## Arquitetura
+```mermaid
+flowchart TD
+    subgraph App["Databricks App (FastAPI + React)"]
+      UI["Aba Jogos — add/remove + coletar"]
+      RPT["Aba Relatórios / AI-BI"]
+    end
+    UI -->|INSERT / DELETE| LB[("Lakebase Postgres<br/>public.games")]
+    LB -->|Lakebase CDF| HIST[["lb_games_history<br/>(Delta, UC)"]]
+    HIST --> GC["view games_current"]
 
-```
-Google Play Store ──(google-play-scraper)──▶ reviews_raw (bronze, append-only, dedup na fonte)
-                                                    │
-                                          SDP + AI Functions (incremental)
-                                                    ▼
-                                        reviews_enriched (7 dimensões + sentimento)
-                                          │                         │
-                              relatório semanal (ai_query)     AI/BI Dashboard + Genie
-                                          ▼                         │
-                                   weekly_reports            Databricks App (FastAPI + React)
-```
-
-- **Extração** (`src/jobs/extract_reviews.py`) — Job Python; paginação com `continuation_token`,
-  dedup + filtro incremental **na fonte** (watermark `last_comment` por jogo), dedup por `review_id`.
-  Modo `backfill_mode` para puxar histórico profundo.
-- **Enriquecimento** (`src/pipeline/enrich_reviews.py`) — SDP streaming table; classifica cada review
-  em 7 dimensões (bug, preço, balanceamento, opinião, comunidade, toxicidade, visual) + sentimento,
-  via `ai_query` / `ai_classify` / `ai_analyze_sentiment`. Incremental (uma inferência por review).
-- **Relatório semanal** (`src/jobs/weekly_report.py`) — Job; amostra por jogo dos últimos 7 dias,
-  `ai_query` gera resumo consolidado + "Principais tópicos da semana"; `grade` determinístico.
-- **AI/BI Dashboard** (`src/dashboard/player_feedback.lvdash.json`) — Lakeview; filtros globais
-  (jogo/idioma/período/tipo), tendências de temas (share e absoluto móvel 7d), sentimento, nota,
-  volume + %negativos, leitura de comentários. Genie nativo integrado.
-- **App** (`app/`) — FastAPI + React/Vite/Tailwind; identidade visual Wildlife (editorial
-  preto/branco), KPIs ao vivo, relatórios por jogo, dashboard AI/BI embeddado.
-
-## Ambiente
-
-- Workspace: `TODO-preencher-com-seu-workspace`
-- Catálogo / schema: `player_feedback_catalog.player_feedback`
-- SQL Warehouse serverless: `TODO-preencher-com-seu-warehouse-id`
-- Modelo: `databricks-meta-llama-3-3-70b-instruct`
-- Jogos monitorados: Sniper 3D, Tennis Clash, Zooba, Soccer Clash (~74k reviews, 13 idiomas)
-
-## Deploy
-
-```bash
-# -p <profile> = seu profile da CLI (TODO-preencher-com-seu-profile-cli)
-databricks bundle validate -t dev -p <profile>
-databricks bundle deploy   -t dev -p <profile>
-
-# rodar componentes
-databricks bundle run pf_setup             -t dev -p <profile>   # schema + tabelas
-databricks bundle run pf_ingest_and_enrich -t dev -p <profile>   # extração + enriquecimento
-databricks bundle run pf_weekly_report     -t dev -p <profile>   # relatório semanal
-databricks bundle run pf_app               -t dev -p <profile>   # app
+    UI -->|coletar agora| ING
+    GC -->|lista de jogos| ING["Job pf_ingest_and_enrich<br/>extract → enrich"]
+    PS(("Google Play<br/>Store")) -->|google-play-scraper| ING
+    ING --> RAW[["reviews_raw (bronze)"]]
+    RAW -->|SDP + AI Functions| ENR[["reviews_enriched (silver)"]]
+    ING -.->|jogo novo?| WK["Job pf_weekly_report<br/>ai_query → relatório + logos"]
+    ENR --> WK
+    WK --> WR[["weekly_reports"]]
+    WK --> VOL[("Volume game_logos")]
+    ENR --> DASH["AI/BI Dashboard + Genie"]
+    WR --> RPT
+    ENR --> RPT
+    DASH --> RPT
+    VOL --> UI
 ```
 
-O **dashboard** é versionado em `src/dashboard/player_feedback.lvdash.json` (fonte de verdade,
-referenciado por `resources/pf_dashboard.yml`). O gerador `scripts/build_dashboard.py` está defasado
-e não deve ser usado para regenerar o JSON.
+- **Cadastro de jogos**: o App grava no **Lakebase** (Postgres). O **Lakebase CDF** materializa as
+  mudanças na tabela Delta `lb_games_history`, da qual deriva a view `games_current` — a fonte de
+  verdade lida pelos jobs. Ao clicar em "coletar agora", o App espera o CDF refletir o cadastro e
+  então dispara **uma** execução do job de coleta.
+- **Coleta + enriquecimento** (`pf_ingest_and_enrich`): extrai reviews (dedup/filtro na fonte;
+  backfill por data para jogos novos), enriquece via SDP e, se houver jogo novo, dispara o relatório.
+- **Relatório semanal + logos** (`pf_weekly_report`): `ai_query` gera o resumo por jogo e baixa os
+  logos para o Volume. Roda no agendamento semanal e sob demanda (jogos novos).
+- **App**: relatórios por jogo, dashboard AI/BI + Genie embeddados e a tela de gestão de jogos.
 
-## Estrutura
+## 2. Estrutura do repositório
 
 ```
 player_feedback/
 ├── databricks.yml            # bundle + variáveis + target dev
-├── resources/                # pf_jobs, pf_pipeline, pf_dashboard, pf_app
-├── src/
-│   ├── setup/                # 00_setup_schema.py
-│   ├── jobs/                 # extract_reviews.py, weekly_report.py
-│   ├── pipeline/             # enrich_reviews.py (SDP)
-│   └── dashboard/            # player_feedback.lvdash.json
-├── app/                      # FastAPI + React (Databricks App)
-└── scripts/                  # build_dashboard.py (defasado — referência)
+├── resources/                # segmentado por workflow, não por tipo de objeto
+│   ├── pf_compute.yml         # SQL Warehouse serverless (2X-Small)
+│   ├── pf_daily.yml           # setup + ingestão/enriquecimento (job + pipeline SDP)
+│   ├── pf_weekly.yml          # relatório semanal + coleta de logos
+│   └── pf_frontend.yml        # AI/BI Dashboard + App (bindings/permissões do SP)
+├── src/                      # notebooks (achatado)
+│   ├── setup.py               # Lakebase Autoscaling+CDF, schema, volume, tabelas, view, grants
+│   ├── extract_reviews.py     # coleta (lê games_current)
+│   ├── enrich_reviews.py      # SDP (reviews_raw → reviews_enriched)
+│   ├── weekly_report.py       # relatório semanal
+│   ├── extract_logos.py       # logos → Volume
+│   └── player_feedback.lvdash.json  # AI/BI Dashboard
+└── app/                      # FastAPI (server/) + React/Vite (frontend/)
 ```
 
-## Roadmap (v2)
+## 3. Deploy
 
-- Coluna `translated_content` via `ai_translate` para análise cross-idioma consistente.
+Pré-requisito único: um **catálogo** no workspace (o `pf_setup` tenta criar `player_feedback_catalog`
+best-effort; se não tiver permissão de metastore, crie-o antes ou ajuste a variável `catalog`).
+Preencha `workspace.host` e `run_as.user_name` em `databricks.yml`. O warehouse serverless, jobs,
+pipeline, dashboard, App e as permissões do SP (bindings) vêm no bundle; o **Lakebase Autoscaling**
+(project/branch/endpoint/database + CDF) é provisionado pelo `pf_setup` via `w.postgres` — o tier
+Autoscaling não tem recurso DAB e é o único que suporta o CDF.
+
+```bash
+# -p <profile> = seu profile da CLI
+databricks bundle validate -t dev -p <profile>
+databricks bundle deploy   -t dev -p <profile>
+
+databricks bundle run pf_setup -t dev -p <profile>   # schema, volume, tabelas, Postgres, CDF, view, grants
+databricks bundle run pf_app   -t dev -p <profile>   # sobe o App
+```
+
+Depois é só abrir o App → aba **Jogos** → adicionar um ou mais jogos → **Disparar coleta agora**.
+
+## 4. Adicionar um jogo pelo App
+
+Na aba **Jogos** do App:
+
+1. Em **Adicionar jogos**, preencha o **nome** e o **ID da Play Store** de cada jogo (dá para
+   adicionar vários de uma vez) e clique em **Salvar jogos**.
+2. Clique em **Disparar coleta agora** — uma única execução coleta os reviews de todos os jogos
+   cadastrados. Jogos novos fazem backfill dos últimos meses e geram o primeiro relatório semanal.
+
+**O que é o ID e como encontrar:** é o identificador do app na Google Play (o *package name*), que
+aparece na URL da página do jogo, no parâmetro `id`:
+
+```
+https://play.google.com/store/apps/details?id=com.king.candycrushsaga
+                                               └──────────┬─────────┘
+                                                    ID (package name)
+```
+
+Abra a página do jogo na Play Store (site ou app), copie o valor após `id=` e cole no campo de ID.
