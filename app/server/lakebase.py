@@ -3,8 +3,9 @@
 O App grava/remove jogos aqui; o Lakebase CDF materializa as mudanças numa tabela
 Delta no UC (`lb_games_history`), da qual deriva a view `games_current` que os jobs leem.
 
-A conexão usa o service principal do App (permissão concedida pelo binding `database`
-do app.yaml): host da instância + token OAuth de curta duração gerados via SDK.
+A conexão usa o service principal do App (permissão concedida pelo binding `postgres`
+do App, em resources/pf_frontend.yml): host do endpoint + token OAuth de curta duração
+gerados via SDK. O role Postgres do SP é criado pelo pf_setup.
 """
 import os
 from functools import lru_cache
