@@ -45,7 +45,7 @@ def get_workspace_host() -> str:
 
 
 def get_dashboard_id() -> str:
-    """ID do AI/BI Dashboard, injetado pelo bundle (${resources.dashboards.pf_dashboard.id})."""
+    """ID do AI/BI Dashboard, injetado pelo bundle (${resources.dashboards.pf_dashboard.dashboard_id})."""
     return DASHBOARD_ID
 
 

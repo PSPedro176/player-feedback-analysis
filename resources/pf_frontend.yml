@@ -49,7 +49,7 @@ resources:
       # conecta via o Postgres role do SP (criado no pf_setup) + generate_database_credential.
 
       # Config do App definida AQUI (não no app.yaml) para poder usar referências
-      # automáticas do bundle: DASHBOARD_ID vem de ${resources.dashboards.pf_dashboard.id},
+      # automáticas do bundle: DASHBOARD_ID vem de ${resources.dashboards.pf_dashboard.dashboard_id},
       # e os IDs de recursos vêm por referências automáticas do bundle.
       config:
         command:
