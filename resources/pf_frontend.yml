@@ -50,7 +50,7 @@ resources:
 
       # Config do App definida AQUI (não no app.yaml) para poder usar referências
       # automáticas do bundle: DASHBOARD_ID vem de ${resources.dashboards.pf_dashboard.id},
-      # e os IDs de recursos com binding vêm por value_from.
+      # e os IDs de recursos vêm por referências automáticas do bundle.
       config:
         command:
           - python
@@ -65,9 +65,9 @@ resources:
           - name: DASHBOARD_ID
             value: ${resources.dashboards.pf_dashboard.dashboard_id}
           - name: SQL_WAREHOUSE_ID
-            value_from: sql-warehouse
+            value: ${resources.sql_warehouses.pf_warehouse.id}
           - name: INGEST_JOB_ID
-            value_from: ingest-job
+            value: ${resources.jobs.pf_ingest_and_enrich.id}
           - name: CATALOG
             value: ${var.catalog}
           - name: SCHEMA

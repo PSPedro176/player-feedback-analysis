@@ -1,7 +1,7 @@
 """Config e auth. Dual-mode: profile local, service principal no Databricks Apps.
 
 Todas as configs chegam por env injetada pelo bundle (resources.apps.pf_app.config.env):
-IDs de recursos via referência automática (${resources...}) ou binding (value_from).
+IDs de recursos via referências automáticas do bundle.
 """
 import os
 from functools import lru_cache
