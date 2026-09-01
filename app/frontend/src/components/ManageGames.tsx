@@ -71,11 +71,11 @@ export default function ManageGames({
 
   return (
     <div className="space-y-12">
-      {error && <div className="border border-bad/30 bg-bad/5 p-4 text-sm text-bad">{error}</div>}
+      {error && <div className="border border-bad/30 bg-brandSoft p-4 text-sm text-bad" role="alert">{error}</div>}
 
       {/* ===== Adicionar jogos (em lote) ===== */}
       <section>
-        <h2 className="display mb-1 text-sm font-bold uppercase tracking-[0.18em] text-muted">
+        <h2 className="display mb-1 text-sm font-bold uppercase tracking-[0.14em] text-muted">
           Adicionar jogos
         </h2>
         <p className="mb-5 max-w-2xl text-sm text-muted">
@@ -94,13 +94,13 @@ export default function ManageGames({
                 value={r.name}
                 onChange={(e) => setRow(i, { name: e.target.value })}
                 placeholder="Nome do jogo"
-                className="min-w-48 flex-1 border border-line bg-white px-3 py-2 text-sm outline-none focus:border-ink"
+                className="min-w-48 flex-1 rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-brand"
               />
               <input
                 value={r.package}
                 onChange={(e) => setRow(i, { package: e.target.value })}
                 placeholder="com.exemplo.jogo"
-                className="min-w-64 flex-1 border border-line bg-white px-3 py-2 font-mono text-sm outline-none focus:border-ink"
+                className="min-w-64 flex-1 rounded-lg border border-line bg-white px-3 py-2 font-mono text-sm outline-none transition-colors focus:border-brand"
               />
               <button
                 onClick={() => dropRow(i)}
@@ -117,14 +117,14 @@ export default function ManageGames({
         <div className="mt-4 flex flex-wrap items-center gap-4">
           <button
             onClick={addRow}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted transition-colors hover:text-ink"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted transition-colors hover:text-brand"
           >
             <Plus className="h-4 w-4" /> Adicionar outra linha
           </button>
           <button
             onClick={save}
             disabled={saving}
-            className="inline-flex items-center gap-2 border border-ink bg-ink px-4 py-2 text-xs font-semibold uppercase tracking-wider text-paper transition-colors hover:bg-carbon disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white transition-colors hover:bg-brandDark disabled:opacity-50"
           >
             {saving ? "Salvando…" : "Salvar jogos"}
           </button>
@@ -134,7 +134,7 @@ export default function ManageGames({
 
       {/* ===== Coleta ===== */}
       <section className="border-t border-line pt-8">
-        <h2 className="display mb-1 text-sm font-bold uppercase tracking-[0.18em] text-muted">
+        <h2 className="display mb-1 text-sm font-bold uppercase tracking-[0.14em] text-muted">
           Coleta de dados
         </h2>
         <p className="mb-4 max-w-2xl text-sm text-muted">
@@ -145,7 +145,7 @@ export default function ManageGames({
           <button
             onClick={collect}
             disabled={collecting || games.length === 0}
-            className="inline-flex items-center gap-2 border border-ink px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-colors hover:bg-ink hover:text-paper disabled:opacity-40"
+            className="inline-flex items-center gap-2 rounded-lg border border-brand px-4 py-2 text-xs font-semibold uppercase tracking-wider text-brand transition-colors hover:bg-brand hover:text-white disabled:opacity-40"
           >
             <Play className="h-3.5 w-3.5" /> Disparar coleta agora
           </button>
@@ -155,7 +155,7 @@ export default function ManageGames({
               href={runUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink underline"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand underline decoration-brand/40 underline-offset-4"
             >
               Acompanhar execução do job <ExternalLink className="h-3.5 w-3.5" />
             </a>
@@ -165,7 +165,7 @@ export default function ManageGames({
 
       {/* ===== Jogos monitorados ===== */}
       <section className="border-t border-line pt-8">
-        <h2 className="display mb-5 text-sm font-bold uppercase tracking-[0.18em] text-muted">
+        <h2 className="display mb-5 text-sm font-bold uppercase tracking-[0.14em] text-muted">
           Jogos monitorados ({games.length})
         </h2>
         {games.length === 0 ? (

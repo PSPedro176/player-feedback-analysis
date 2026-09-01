@@ -33,15 +33,15 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
-      <header className="sticky top-0 z-20 border-b border-line bg-paper/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-line bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-content items-center justify-between gap-6 px-6 py-4">
           <div className="flex items-baseline gap-3">
             <span className="brand-title text-2xl leading-none">PLAYER FEEDBACK</span>
-            <span className="hidden text-sm font-semibold uppercase tracking-[0.18em] text-muted sm:inline">
+            <span className="hidden text-sm font-semibold uppercase tracking-[0.12em] text-brand sm:inline">
               Analysis
             </span>
           </div>
-          <nav className="flex items-center gap-6">
+          <nav className="flex items-center gap-6" aria-label="Navegação principal">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -52,7 +52,7 @@ export default function App() {
               >
                 {t.label}
                 {tab === t.id && (
-                  <span className="absolute -bottom-[17px] left-0 h-[2px] w-full bg-ink" />
+                  <span className="absolute -bottom-[17px] left-0 h-[2px] w-full bg-brand" />
                 )}
               </button>
             ))}
@@ -66,7 +66,7 @@ export default function App() {
         }`}
       >
         {error && (
-          <div className="border border-bad/30 bg-bad/5 p-4 text-sm text-bad">
+          <div className="border border-bad/30 bg-brandSoft p-4 text-sm text-bad" role="alert">
             Erro ao inicializar: {error}
           </div>
         )}
@@ -89,10 +89,10 @@ export default function App() {
         )}
       </main>
 
-      <footer className="mt-auto bg-ink text-mutedDark">
+      <footer className="mt-auto bg-carbon text-mutedDark">
         <div className="mx-auto flex max-w-content flex-wrap items-center justify-between gap-4 px-6 py-8">
-          <span className="brand-title text-lg text-paper">PLAYER FEEDBACK</span>
-          <span className="text-xs uppercase tracking-[0.18em]">
+          <span className="brand-title text-lg text-white">PLAYER FEEDBACK</span>
+          <span className="text-xs uppercase tracking-[0.12em]">
             Powered by Databricks · AI Functions · AI/BI · Genie
           </span>
         </div>

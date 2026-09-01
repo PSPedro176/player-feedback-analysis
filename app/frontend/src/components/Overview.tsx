@@ -9,13 +9,12 @@ import {
 } from "../api";
 import { GameIcon, GradeBadge, GradeDot, Spinner, Stars } from "./ui";
 
-// Sentimento em escala monocromática de cinza (cor reservada só p/ grades)
 const SENTIMENT_ORDER = ["positive", "neutral", "mixed", "negative"] as const;
 const SENTIMENT_FILL: Record<string, string> = {
-  positive: "#0E0E10",
-  neutral: "#6B6A67",
-  mixed: "#A9A7A2",
-  negative: "#D3D1CC",
+  positive: "#227A52",
+  neutral: "#8A979D",
+  mixed: "#D59B32",
+  negative: "#C1352B",
 };
 const SENTIMENT_LABEL: Record<string, string> = {
   positive: "Positivo",
@@ -77,7 +76,7 @@ export default function Overview({ games }: { games: Game[] }) {
   if (games.length === 0)
     return (
       <div className="border border-line bg-white p-12 text-center">
-        <h2 className="display text-xl font-black">Nenhum jogo monitorado ainda</h2>
+        <h2 className="display text-xl font-bold">Nenhum jogo monitorado ainda</h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-muted">
           Adicione jogos na aba <span className="font-semibold text-ink">Jogos</span> e dispare a
           primeira coleta. Os relatórios semanais aparecerão aqui.
@@ -93,18 +92,18 @@ export default function Overview({ games }: { games: Game[] }) {
       <section>
         <div className="flex flex-wrap items-end gap-x-16 gap-y-6">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
               Reviews analisados
             </div>
-            <div className="display mt-1 text-6xl font-black tabular-nums leading-none">
+            <div className="display mt-1 text-6xl font-bold tabular-nums leading-none">
               {data.totals.total_reviews.toLocaleString("pt-BR")}
             </div>
           </div>
           <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+            <div className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
               Nota média
             </div>
-            <div className="display mt-1 flex items-baseline gap-1 text-6xl font-black leading-none">
+            <div className="display mt-1 flex items-baseline gap-1 text-6xl font-bold leading-none">
               {data.totals.avg_score.toFixed(2)}
               <span className="text-2xl text-muted">/5</span>
             </div>
@@ -119,7 +118,7 @@ export default function Overview({ games }: { games: Game[] }) {
 
       {/* ===== Jogos: estrelas + sentimento por jogo ===== */}
       <section>
-        <h2 className="display mb-5 text-sm font-bold uppercase tracking-[0.18em] text-muted">
+        <h2 className="display mb-5 text-sm font-bold uppercase tracking-[0.14em] text-muted">
           Por jogo
         </h2>
         <div className="grid grid-cols-1 gap-px bg-line md:grid-cols-2">
@@ -132,7 +131,7 @@ export default function Overview({ games }: { games: Game[] }) {
                 key={g.name}
                 onClick={() => setSelected(g.name)}
                 className={`group flex flex-col gap-4 bg-paper p-6 text-left transition-colors hover:bg-white ${
-                  active ? "bg-white" : ""
+                  active ? "bg-white shadow-[inset_0_-2px_0_#FF3621]" : ""
                 }`}
               >
                 <div className="flex items-center gap-4">
@@ -148,7 +147,7 @@ export default function Overview({ games }: { games: Game[] }) {
                       <span>{stat?.reviews.toLocaleString("pt-BR")} reviews</span>
                     </div>
                   </div>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-muted transition-transform group-hover:translate-x-1 group-hover:text-ink" />
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted transition-transform group-hover:translate-x-1 group-hover:text-brand" />
                 </div>
                 <SentimentBar counts={sentByGame[g.name] ?? {}} />
               </button>
@@ -172,7 +171,7 @@ export default function Overview({ games }: { games: Game[] }) {
           <div className="flex items-center gap-4">
             <GameIcon icon={meta?.icon} name={selected} size={48} />
             <div>
-              <h2 className="display text-2xl font-black">{selected}</h2>
+              <h2 className="display text-2xl font-bold">{selected}</h2>
               {current && (
                 <div className="mt-1 flex items-center gap-2 text-sm text-muted">
                   <Calendar className="h-4 w-4" />
@@ -201,7 +200,7 @@ export default function Overview({ games }: { games: Game[] }) {
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_320px]">
             {/* Relatório textual */}
             <article>
-              <h3 className="display mb-4 text-sm font-bold uppercase tracking-[0.18em] text-muted">
+              <h3 className="display mb-4 text-sm font-bold uppercase tracking-[0.14em] text-muted">
                 Relatório semanal · gerado por IA
               </h3>
               <div className="report-body text-[15px]">{current.report}</div>
@@ -209,7 +208,7 @@ export default function Overview({ games }: { games: Game[] }) {
 
             {/* Reviews recentes */}
             <aside>
-              <h3 className="display mb-4 text-sm font-bold uppercase tracking-[0.18em] text-muted">
+              <h3 className="display mb-4 text-sm font-bold uppercase tracking-[0.14em] text-muted">
                 Reviews recentes
               </h3>
               {!reviews ? (

@@ -74,6 +74,6 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://TODO-preencher-com-seu-workspace.cloud.databricks.com
+      host: https://fevm-perdomo-demos-workspace.cloud.databricks.com
     run_as:
-      user_name: TODO-preencher-com-seu-email@empresa.com
+      user_name: pedro.perdomo@databricks.com

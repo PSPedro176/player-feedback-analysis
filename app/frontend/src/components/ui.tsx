@@ -9,7 +9,7 @@ const GRADE = {
 export function GradeBadge({ grade }: { grade: string }) {
   const g = GRADE[grade as keyof typeof GRADE] ?? GRADE.green;
   return (
-    <span className="inline-flex items-center gap-2 border border-line bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wider">
+    <span className="inline-flex items-center gap-2 rounded-full bg-paper px-3 py-1.5 text-xs font-semibold">
       <span className={`h-2 w-2 rounded-full ${g.dot}`} />
       <span className={g.text}>{g.label}</span>
     </span>
@@ -41,7 +41,7 @@ export function GameIcon({
 }) {
   return (
     <div
-      className="relative shrink-0 overflow-hidden border border-line bg-ink"
+      className="relative shrink-0 overflow-hidden rounded-xl bg-ink"
       style={{ width: size, height: size }}
     >
       {icon ? (
@@ -53,7 +53,7 @@ export function GameIcon({
         />
       ) : null}
       <div
-        className="absolute inset-0 -z-10 flex items-center justify-center font-display font-black text-paper"
+        className="absolute inset-0 -z-10 flex items-center justify-center font-display font-bold text-paper"
         style={{ fontSize: size * 0.4 }}
       >
         {name.charAt(0)}
@@ -65,7 +65,7 @@ export function GameIcon({
 export function Spinner({ label }: { label?: string }) {
   return (
     <div className="flex items-center gap-3 text-muted">
-      <div className="h-4 w-4 animate-spin rounded-full border-2 border-line border-t-ink" />
+      <div className="h-4 w-4 animate-spin rounded-full border-2 border-line border-t-brand" />
       {label && <span className="text-sm">{label}</span>}
     </div>
   );

@@ -21,7 +21,7 @@ export default function Embed({
             href={url}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 border border-ink px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-colors hover:bg-ink hover:text-paper"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-brand px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand transition-colors hover:bg-brand hover:text-white"
           >
             Abrir <ArrowUpRight className="h-3.5 w-3.5" />
           </a>
