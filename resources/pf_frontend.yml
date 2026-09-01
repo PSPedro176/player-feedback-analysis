@@ -63,11 +63,11 @@ resources:
           - "8000"
         env:
           - name: DASHBOARD_ID
-            value: ${resources.dashboards.pf_dashboard.dashboard_id}
+            value: ${resources.dashboards.pf_dashboard.id}
           - name: SQL_WAREHOUSE_ID
-            value: ${resources.sql_warehouses.pf_warehouse.id}
+            value_from: sql-warehouse
           - name: INGEST_JOB_ID
-            value: ${resources.jobs.pf_ingest_and_enrich.id}
+            value_from: ingest-job
           - name: CATALOG
             value: ${var.catalog}
           - name: SCHEMA

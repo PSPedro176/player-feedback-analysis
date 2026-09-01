@@ -19,7 +19,7 @@ resources:
               catalog: ${var.catalog}
               schema: ${var.schema}
               app_name: player-feedback-analysis
-              dashboard_id: ${resources.dashboards.pf_dashboard.dashboard_id}
+              dashboard_id: ${resources.dashboards.pf_dashboard.id}
               warehouse_id: ${resources.sql_warehouses.pf_warehouse.id}
               pg_project: pf-games
               pg_branch: production
