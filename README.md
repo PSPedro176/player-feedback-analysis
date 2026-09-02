@@ -68,7 +68,9 @@ player_feedback/
 
 Pré-requisito único: um **catálogo** no workspace (o `pf_setup` tenta criar `player_feedback_catalog`
 best-effort; se não tiver permissão de metastore, crie-o antes ou ajuste a variável `catalog`).
-Preencha `workspace.host` e `run_as.user_name` em `databricks.yml`. O warehouse serverless, jobs,
+`databricks.yml` traz `workspace.host` e `run_as.user_name` como placeholders (`<SEU_WORKSPACE>`,
+`<seu.email@empresa.com>`) — substitua pelos dados do seu próprio workspace antes do deploy.
+O warehouse serverless, jobs,
 pipeline, dashboard, App e as permissões do SP (bindings) vêm no bundle; o **Lakebase Autoscaling**
 (project/branch/endpoint/database + CDF) é provisionado pelo `pf_setup` via `w.postgres` — o tier
 Autoscaling não tem recurso DAB e é o único que suporta o CDF.

@@ -74,6 +74,6 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://fevm-perdomo-demos-workspace.cloud.databricks.com
+      host: https://<SEU_WORKSPACE>.cloud.databricks.com
     run_as:
-      user_name: pedro.perdomo@databricks.com
+      user_name: <seu.email@empresa.com>
