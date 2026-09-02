@@ -1,11 +1,12 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Setup — Player Feedback Analysis
-# MAGIC Idempotente. Cria:
+# MAGIC Idempotente. Provisiona SÓ o que não tem recurso DAB (o project/branch/endpoint
+# MAGIC Lakebase são recursos do bundle — ver `resources/pf_compute.yml`). Cria:
 # MAGIC - schema, **volume `game_logos`** e tabelas base (`reviews_raw`, `weekly_reports`);
-# MAGIC - o projeto **Lakebase Autoscaling** (project/branch/endpoint/database) + a tabela Postgres
-# MAGIC   `public.games` + `REPLICA IDENTITY FULL` + role do SP do App;
-# MAGIC - a **CDF config** (materializa `lb_games_history` no UC);
+# MAGIC - a tabela Postgres `public.games` + `REPLICA IDENTITY FULL` + o **role do SP do App**
+# MAGIC   no Lakebase (o SP só existe pós-deploy, por isso o role é imperativo aqui);
+# MAGIC - a **CDF config** (materializa `lb_games_history` no UC) — o único pedaço sem recurso DAB;
 # MAGIC - a view **`games_current`** (estado atual dos jogos, a partir do histórico do CDF);
 # MAGIC - os **grants de UC** ao service principal do App.
 # MAGIC
@@ -23,9 +24,9 @@ dbutils.widgets.text("schema", "player_feedback")
 dbutils.widgets.text("app_name", "player-feedback-analysis")
 dbutils.widgets.text("dashboard_id", "")
 dbutils.widgets.text("warehouse_id", "")
-# Lakebase Autoscaling — só o project_id é escolhido; branch (`production`), database
-# (`databricks_postgres`) e endpoint são AUTO-CRIADOS ao criar o projeto (o endpoint tem
-# id auto-gerado e é descoberto via list_endpoints).
+# Lakebase Autoscaling — project/branch/endpoint são recursos do bundle (pf_compute.yml).
+# Estes params só ecoam esses nomes: o endpoint tem id auto-gerado (descoberto via
+# list_endpoints) e o database `databricks_postgres` é o auto-criado com o projeto.
 dbutils.widgets.text("pg_project", "pf-games")
 dbutils.widgets.text("pg_branch", "production")
 dbutils.widgets.text("pg_database", "databricks_postgres")
@@ -99,9 +100,10 @@ COMMENT 'Relatório semanal por jogo (janela de 7 dias), gerado por ai_query.'
 
 # COMMAND ----------
 
-# MAGIC %md ## Lakebase Autoscaling — projeto / branch / endpoint / database + role do SP
-# MAGIC CDF é exclusivo do tier Autoscaling (`w.postgres`, projects/branches/endpoints).
-# MAGIC Provisionamento idempotente (get-before-create); cada op é long-running (`.wait()`).
+# MAGIC %md ## Lakebase Autoscaling — valida o projeto, descobre endpoint/database, cria o role do SP
+# MAGIC Project/branch/endpoint vêm do bundle (`resources/pf_compute.yml`). Aqui só descobrimos
+# MAGIC os paths (endpoint/database têm id auto-gerado) e criamos o **role Postgres do SP do App**
+# MAGIC (o SP só existe pós-deploy, então não é declarável no bundle).
 
 # COMMAND ----------
 
@@ -120,17 +122,17 @@ run_as_user = w.current_user.me().user_name
 sp = w.apps.get(name=app_name).service_principal_client_id
 print(f"run_as={run_as_user} | SP do App={sp}")
 
-# 1) Projeto — mínimo. Auto-cria branch `production`, database `databricks_postgres` e endpoint.
+# 1) Projeto/branch/endpoint/database vêm do BUNDLE (resources/pf_compute.yml). Aqui só
+# validamos que o projeto existe — falha clara se o `bundle deploy` não rodou antes.
 try:
     w.postgres.get_project(name=project_path)
-    print(f"Projeto {pg_project} já existe.")
+    print(f"Projeto {pg_project} encontrado (criado pelo bundle).")
 except NotFound:
-    print(f"Criando projeto {pg_project} (Postgres 16)...")
-    w.postgres.create_project(
-        pg.Project(spec=pg.ProjectSpec(pg_version=16)),
-        project_id=pg_project,
-    ).wait()
-    print("Projeto criado (branch production + database databricks_postgres + endpoint).")
+    raise RuntimeError(
+        f"Projeto Lakebase {project_path} não existe. Rode `databricks bundle deploy` "
+        "ANTES do pf_setup — project/branch/endpoint agora são recursos do bundle "
+        "(resources/pf_compute.yml)."
+    )
 
 # 2) Descobre endpoint read-write E database (ambos com id auto-gerado — não hardcodar path).
 endpoints = list(w.postgres.list_endpoints(parent=branch_path))

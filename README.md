@@ -50,12 +50,12 @@ flowchart TD
 player_feedback/
 ├── databricks.yml            # bundle + variáveis + target dev
 ├── resources/                # segmentado por workflow, não por tipo de objeto
-│   ├── pf_compute.yml         # SQL Warehouse serverless (2X-Small)
+│   ├── pf_compute.yml         # SQL Warehouse serverless (2X-Small) + Lakebase Autoscaling (project/branch/endpoint)
 │   ├── pf_daily.yml           # setup + ingestão/enriquecimento (job + pipeline SDP)
 │   ├── pf_weekly.yml          # relatório semanal + coleta de logos
 │   └── pf_frontend.yml        # AI/BI Dashboard + App (bindings/permissões do SP)
 ├── src/                      # notebooks (achatado)
-│   ├── setup.py               # Lakebase Autoscaling+CDF, schema, volume, tabelas, view, grants
+│   ├── setup.py               # tabela Postgres + CDF + role do SP, schema, volume, tabelas, view, grants
 │   ├── extract_reviews.py     # coleta (lê games_current)
 │   ├── enrich_reviews.py      # SDP (reviews_raw → reviews_enriched)
 │   ├── weekly_report.py       # relatório semanal
@@ -69,17 +69,32 @@ player_feedback/
 Pré-requisito único: um **catálogo** no workspace (o `pf_setup` tenta criar `player_feedback_catalog`
 best-effort; se não tiver permissão de metastore, crie-o antes ou ajuste a variável `catalog`).
 Preencha `workspace.host` e `run_as.user_name` em `databricks.yml`. O warehouse serverless, jobs,
-pipeline, dashboard, App e as permissões do SP (bindings) vêm no bundle; o **Lakebase Autoscaling**
-(project/branch/endpoint/database + CDF) é provisionado pelo `pf_setup` via `w.postgres` — o tier
-Autoscaling não tem recurso DAB e é o único que suporta o CDF.
+pipeline, dashboard, App e o **Lakebase Autoscaling** (project/branch/endpoint) vêm no bundle. Só a
+**CDF config** não tem recurso DAB, então o `pf_setup` a cria — junto da tabela `public.games`, do
+role Postgres do SP, da view `games_current` e dos grants de UC — imperativamente via `w.postgres`.
+
+> **Migração destrutiva (rebuild):** o bundle **NÃO adota** um Lakebase pré-existente. Se já existe um
+> projeto `pf-games`, o dono deve **apagá-lo** primeiro; o deploy recria project/branch/endpoint e o
+> `pf_setup` recria tabela/CDF/role/view/grants. **Isto substitui o Lakebase atual e re-ingere os dados.**
 
 ```bash
 # -p <profile> = seu profile da CLI
+
+# 0) SÓ se já existe um Lakebase pf-games: o dono apaga (o bundle não adota projeto legado).
+databricks postgres delete-project projects/pf-games -p <profile>
+
+# 1) Cria warehouse, jobs, pipeline, dashboard, App E o Lakebase (project/branch/endpoint).
 databricks bundle validate -t dev -p <profile>
 databricks bundle deploy   -t dev -p <profile>
 
-databricks bundle run pf_setup -t dev -p <profile>   # schema, volume, tabelas, Postgres, CDF, view, grants
-databricks bundle run pf_app   -t dev -p <profile>   # sobe o App
+# 2) Cria tabela public.games + REPLICA IDENTITY FULL + CDF + role do SP + view + grants de UC.
+databricks bundle run pf_setup -t dev -p <profile>
+
+# 3) Re-alimenta os dados (coleta + enriquecimento) — o Lakebase foi recriado do zero.
+databricks bundle run pf_ingest_and_enrich -t dev -p <profile>
+
+# 4) Sobe o App.
+databricks bundle run pf_app -t dev -p <profile>
 ```
 
 Depois é só abrir o App → aba **Jogos** → adicionar um ou mais jogos → **Disparar coleta agora**.

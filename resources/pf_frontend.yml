@@ -45,8 +45,16 @@ resources:
           serving_endpoint:
             name: ${var.ai_model}
             permission: CAN_QUERY
-      # Sem binding `database`: o Lakebase Autoscaling não tem recurso DAB. O App
-      # conecta via o Postgres role do SP (criado no pf_setup) + generate_database_credential.
+        # Binding `postgres` (tier Autoscaling — o legado é `database`): concede ao SP
+        # do App CAN_CONNECT_AND_CREATE na branch declarada em pf_compute.yml. `database`
+        # é o `databricks_postgres` auto-criado (não é recurso DAB — o schema exige `role`,
+        # ver pf_compute.yml). O App ainda conecta via o Postgres role do SP (criado no
+        # pf_setup) + generate_database_credential.
+        - name: lakebase
+          postgres:
+            branch: ${resources.postgres_branches.production.id}
+            database: databricks_postgres
+            permission: CAN_CONNECT_AND_CREATE
 
       # Config do App definida AQUI (não no app.yaml) para poder usar referências
       # automáticas do bundle: DASHBOARD_ID vem de ${resources.dashboards.pf_dashboard.dashboard_id},
@@ -74,9 +82,13 @@ resources:
             value: ${var.schema}
           - name: GAME_LOGOS_VOLUME
             value: game_logos
+          # Project/branch vêm dos recursos declarados (pf_compute.yml) — fonte única.
+          # `.project_id`/`.branch_id` são os nomes curtos (o `.id` traria o caminho
+          # completo `projects/.../branches/...`, que o app/server/lakebase.py monta sozinho).
           - name: LAKEBASE_PROJECT
-            value: pf-games
+            value: ${resources.postgres_projects.pf_games.project_id}
           - name: LAKEBASE_BRANCH
-            value: production
+            value: ${resources.postgres_branches.production.branch_id}
+          # `databricks_postgres` não é recurso DAB (schema exige `role`); literal.
           - name: LAKEBASE_DATABASE
             value: databricks_postgres
