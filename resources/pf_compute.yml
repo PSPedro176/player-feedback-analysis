@@ -2,8 +2,8 @@
 # Compute provisionado pelo bundle:
 # - SQL Warehouse serverless (2X-Small) — dashboard, App (KPIs, poll do CDF), ad hoc.
 #
-# O Lakebase Autoscaling (project/branch/endpoint) é declarado em
-# resources/pf_lakebase.yml. Só a **CDF config** (e a tabela `public.games`, o role
+# O Lakebase Autoscaling (project/branch/endpoint) é declarado mais abaixo,
+# neste mesmo arquivo. Só a **CDF config** (e a tabela `public.games`, o role
 # do SP e os grants) não têm recurso DAB e são provisionados pelo pf_setup.
 # ---------------------------------------------------------------------------
 resources:
@@ -15,3 +15,57 @@ resources:
       enable_serverless_compute: true
       auto_stop_mins: 10
       max_num_clusters: 1
+
+# ---------------------------------------------------------------------------
+# Lakebase Autoscaling — cadastro de jogos (OLTP) que alimenta o Lakebase CDF.
+#
+# O tier Autoscaling TEM recursos DAB de primeira classe. Declaramos o grafo aqui:
+#   project `pf-games`  →  branch `production`  →  endpoint `primary` (read-write).
+#
+# NÃO declarado aqui, de propósito (com evidência do `databricks bundle schema`):
+#  - postgres_databases: o schema exige `role` (required=[database_id, parent, role];
+#    role no formato projects/{p}/branches/{b}/roles/{id}). O owner natural seria o
+#    role do SP do App, que só existe DEPOIS do deploy do App — não há caminho de role
+#    estável em tempo de bundle. O database `databricks_postgres` é auto-criado com o
+#    projeto; fica como literal no binding do App e é descoberto pelo pf_setup.
+#  - postgres_roles: idem — o SP do App só existe pós-deploy; o role Postgres do SP é
+#    criado imperativamente pelo pf_setup.
+#  - a CDF config (`w.postgres.create_cdf_config`): NÃO tem recurso DAB — é o único
+#    pedaço genuinamente imperativo, feito pelo pf_setup.
+#
+# Migração: o bundle NÃO adota um projeto Lakebase pré-existente. Se `pf-games` já
+# existe, o dono deve apagá-lo antes do deploy (ver README §3). replace_existing nas
+# branches/endpoints só adota os filhos AUTO-CRIADOS (production/primary) do projeto
+# que o próprio bundle cria — não um projeto legado.
+# ---------------------------------------------------------------------------
+  postgres_projects:
+    pf_games:
+      project_id: pf-games
+      display_name: "Player Feedback — cadastro de jogos"
+      pg_version: 16
+      # `production` é a branch default auto-criada; fixamos o caminho completo
+      # (formato exigido pelo schema: projects/{project_id}/branches/{branch_id}).
+      default_branch: projects/pf-games/branches/production
+
+  postgres_branches:
+    production:
+      parent: ${resources.postgres_projects.pf_games.id}   # → projects/pf-games
+      branch_id: production
+      no_expiry: true
+      # A branch raiz `production` é criada implicitamente junto do projeto;
+      # replace_existing adota a existente em vez de falhar com ALREADY_EXISTS.
+      # (Remover do bundle só a tira do state — a branch vive/morre com o projeto.)
+      replace_existing: true
+
+  postgres_endpoints:
+    primary:
+      parent: ${resources.postgres_branches.production.id} # → projects/pf-games/branches/production
+      endpoint_id: primary
+      endpoint_type: ENDPOINT_TYPE_READ_WRITE
+      # Faixa de autoscaling do endpoint primário: min 0.5 CU (piso do tier — menor
+      # custo em idle) → max 2.0 CU (demo / OLTP leve). Suba o max se o load crescer.
+      autoscaling_limit_min_cu: 0.5
+      autoscaling_limit_max_cu: 2.0
+      # O endpoint read-write `primary` é criado implicitamente na branch;
+      # replace_existing adota o existente. (endpoint_id custom virá em versões futuras.)
+      replace_existing: true

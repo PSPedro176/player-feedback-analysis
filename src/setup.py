@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Setup — Player Feedback Analysis
 # MAGIC Idempotente. Provisiona SÓ o que não tem recurso DAB (o project/branch/endpoint
-# MAGIC Lakebase são recursos do bundle — ver `resources/pf_lakebase.yml`). Cria:
+# MAGIC Lakebase são recursos do bundle — ver `resources/pf_compute.yml`). Cria:
 # MAGIC - schema, **volume `game_logos`** e tabelas base (`reviews_raw`, `weekly_reports`);
 # MAGIC - a tabela Postgres `public.games` + `REPLICA IDENTITY FULL` + o **role do SP do App**
 # MAGIC   no Lakebase (o SP só existe pós-deploy, por isso o role é imperativo aqui);
@@ -24,7 +24,7 @@ dbutils.widgets.text("schema", "player_feedback")
 dbutils.widgets.text("app_name", "player-feedback-analysis")
 dbutils.widgets.text("dashboard_id", "")
 dbutils.widgets.text("warehouse_id", "")
-# Lakebase Autoscaling — project/branch/endpoint são recursos do bundle (pf_lakebase.yml).
+# Lakebase Autoscaling — project/branch/endpoint são recursos do bundle (pf_compute.yml).
 # Estes params só ecoam esses nomes: o endpoint tem id auto-gerado (descoberto via
 # list_endpoints) e o database `databricks_postgres` é o auto-criado com o projeto.
 dbutils.widgets.text("pg_project", "pf-games")
@@ -101,7 +101,7 @@ COMMENT 'Relatório semanal por jogo (janela de 7 dias), gerado por ai_query.'
 # COMMAND ----------
 
 # MAGIC %md ## Lakebase Autoscaling — valida o projeto, descobre endpoint/database, cria o role do SP
-# MAGIC Project/branch/endpoint vêm do bundle (`resources/pf_lakebase.yml`). Aqui só descobrimos
+# MAGIC Project/branch/endpoint vêm do bundle (`resources/pf_compute.yml`). Aqui só descobrimos
 # MAGIC os paths (endpoint/database têm id auto-gerado) e criamos o **role Postgres do SP do App**
 # MAGIC (o SP só existe pós-deploy, então não é declarável no bundle).
 
@@ -122,7 +122,7 @@ run_as_user = w.current_user.me().user_name
 sp = w.apps.get(name=app_name).service_principal_client_id
 print(f"run_as={run_as_user} | SP do App={sp}")
 
-# 1) Projeto/branch/endpoint/database vêm do BUNDLE (resources/pf_lakebase.yml). Aqui só
+# 1) Projeto/branch/endpoint/database vêm do BUNDLE (resources/pf_compute.yml). Aqui só
 # validamos que o projeto existe — falha clara se o `bundle deploy` não rodou antes.
 try:
     w.postgres.get_project(name=project_path)
@@ -131,7 +131,7 @@ except NotFound:
     raise RuntimeError(
         f"Projeto Lakebase {project_path} não existe. Rode `databricks bundle deploy` "
         "ANTES do pf_setup — project/branch/endpoint agora são recursos do bundle "
-        "(resources/pf_lakebase.yml)."
+        "(resources/pf_compute.yml)."
     )
 
 # 2) Descobre endpoint read-write E database (ambos com id auto-gerado — não hardcodar path).

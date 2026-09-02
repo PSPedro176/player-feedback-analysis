@@ -50,8 +50,7 @@ flowchart TD
 player_feedback/
 ├── databricks.yml            # bundle + variáveis + target dev
 ├── resources/                # segmentado por workflow, não por tipo de objeto
-│   ├── pf_compute.yml         # SQL Warehouse serverless (2X-Small)
-│   ├── pf_lakebase.yml        # Lakebase Autoscaling (project/branch/endpoint)
+│   ├── pf_compute.yml         # SQL Warehouse serverless (2X-Small) + Lakebase Autoscaling (project/branch/endpoint)
 │   ├── pf_daily.yml           # setup + ingestão/enriquecimento (job + pipeline SDP)
 │   ├── pf_weekly.yml          # relatório semanal + coleta de logos
 │   └── pf_frontend.yml        # AI/BI Dashboard + App (bindings/permissões do SP)

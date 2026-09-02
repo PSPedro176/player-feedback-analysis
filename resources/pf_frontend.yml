@@ -46,9 +46,9 @@ resources:
             name: ${var.ai_model}
             permission: CAN_QUERY
         # Binding `postgres` (tier Autoscaling — o legado é `database`): concede ao SP
-        # do App CAN_CONNECT_AND_CREATE na branch declarada em pf_lakebase.yml. `database`
+        # do App CAN_CONNECT_AND_CREATE na branch declarada em pf_compute.yml. `database`
         # é o `databricks_postgres` auto-criado (não é recurso DAB — o schema exige `role`,
-        # ver pf_lakebase.yml). O App ainda conecta via o Postgres role do SP (criado no
+        # ver pf_compute.yml). O App ainda conecta via o Postgres role do SP (criado no
         # pf_setup) + generate_database_credential.
         - name: lakebase
           postgres:
@@ -82,7 +82,7 @@ resources:
             value: ${var.schema}
           - name: GAME_LOGOS_VOLUME
             value: game_logos
-          # Project/branch vêm dos recursos declarados (pf_lakebase.yml) — fonte única.
+          # Project/branch vêm dos recursos declarados (pf_compute.yml) — fonte única.
           # `.project_id`/`.branch_id` são os nomes curtos (o `.id` traria o caminho
           # completo `projects/.../branches/...`, que o app/server/lakebase.py monta sozinho).
           - name: LAKEBASE_PROJECT
