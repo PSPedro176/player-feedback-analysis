@@ -1288,7 +1288,7 @@
     },
     {
       "name": "trend_themes_combo",
-      "displayName": "Temas — contagem e share móvel 7d",
+      "displayName": "Reviews + share de temas (móvel 7d)",
       "queryLines": [
         "WITH f AS (\n",
         "  SELECT\n",
@@ -1353,35 +1353,11 @@
         "ex AS (\n",
         "  SELECT\n",
         "    DATE(at) AS day,\n",
-        "    t AS tipo_t\n",
+        "    t AS tema\n",
         "  FROM\n",
         "    f\n",
         "    LATERAL VIEW\n",
-        "      explode(\n",
-        "        filter(\n",
-        "          array(\n",
-        "            CASE\n",
-        "              WHEN bug_report THEN 'Bugs'\n",
-        "            END,\n",
-        "            CASE\n",
-        "              WHEN pricing THEN 'Preços'\n",
-        "            END,\n",
-        "            CASE\n",
-        "              WHEN game_balance THEN 'Balanceamento'\n",
-        "            END,\n",
-        "            CASE\n",
-        "              WHEN toxicity THEN 'Toxicidade'\n",
-        "            END,\n",
-        "            CASE\n",
-        "              WHEN community THEN 'Comunidade'\n",
-        "            END,\n",
-        "            CASE\n",
-        "              WHEN visuals THEN 'Visual'\n",
-        "            END\n",
-        "          ),\n",
-        "          x -> x IS NOT NULL\n",
-        "        )\n",
-        "      ) x\n",
+        "      explode(temas) x\n",
         "      AS t\n",
         "),\n",
         "tot AS (\n",
@@ -1396,42 +1372,79 @@
         "cnt AS (\n",
         "  SELECT\n",
         "    day,\n",
-        "    tipo_t,\n",
+        "    tema,\n",
         "    COUNT(*) AS c\n",
         "  FROM\n",
         "    ex\n",
         "  GROUP BY\n",
         "    day,\n",
-        "    tipo_t\n",
+        "    tema\n",
+        "),\n",
+        "piv AS (\n",
+        "  SELECT\n",
+        "    t.day,\n",
+        "    t.n AS reviews,\n",
+        "    COALESCE(SUM(CASE WHEN c.tema = 'Bugs' THEN c.c END), 0) AS n_bugs,\n",
+        "    COALESCE(SUM(CASE WHEN c.tema = 'Preços' THEN c.c END), 0) AS n_precos,\n",
+        "    COALESCE(SUM(CASE WHEN c.tema = 'Balanceamento' THEN c.c END), 0) AS n_balanceamento,\n",
+        "    COALESCE(SUM(CASE WHEN c.tema = 'Toxicidade' THEN c.c END), 0) AS n_toxicidade,\n",
+        "    COALESCE(SUM(CASE WHEN c.tema = 'Comunidade' THEN c.c END), 0) AS n_comunidade,\n",
+        "    COALESCE(SUM(CASE WHEN c.tema = 'Visual' THEN c.c END), 0) AS n_visual\n",
+        "  FROM\n",
+        "    tot t\n",
+        "      LEFT JOIN cnt c\n",
+        "        ON c.day = t.day\n",
+        "  GROUP BY\n",
+        "    t.day,\n",
+        "    t.n\n",
+        "),\n",
+        "roll AS (\n",
+        "  SELECT\n",
+        "    day,\n",
+        "    SUM(reviews) OVER (\n",
+        "        ORDER BY day\n",
+        "        RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW\n",
+        "      ) AS reviews_7d,\n",
+        "    SUM(n_bugs) OVER (\n",
+        "        ORDER BY day\n",
+        "        RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW\n",
+        "      ) AS n_bugs_7d,\n",
+        "    SUM(n_precos) OVER (\n",
+        "        ORDER BY day\n",
+        "        RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW\n",
+        "      ) AS n_precos_7d,\n",
+        "    SUM(n_balanceamento) OVER (\n",
+        "        ORDER BY day\n",
+        "        RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW\n",
+        "      ) AS n_balanceamento_7d,\n",
+        "    SUM(n_toxicidade) OVER (\n",
+        "        ORDER BY day\n",
+        "        RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW\n",
+        "      ) AS n_toxicidade_7d,\n",
+        "    SUM(n_comunidade) OVER (\n",
+        "        ORDER BY day\n",
+        "        RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW\n",
+        "      ) AS n_comunidade_7d,\n",
+        "    SUM(n_visual) OVER (\n",
+        "        ORDER BY day\n",
+        "        RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW\n",
+        "      ) AS n_visual_7d\n",
+        "  FROM\n",
+        "    piv\n",
         ")\n",
         "SELECT\n",
-        "  c.day,\n",
-        "  c.tipo_t AS tema,\n",
-        "  SUM(c.c) OVER (\n",
-        "      PARTITION BY c.tipo_t\n",
-        "      ORDER BY c.day\n",
-        "      RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW\n",
-        "    ) AS cnt_7d,\n",
-        "  ROUND(\n",
-        "    100.0\n",
-        "      * SUM(c.c) OVER (\n",
-        "          PARTITION BY c.tipo_t\n",
-        "          ORDER BY c.day\n",
-        "          RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW\n",
-        "        )\n",
-        "      / NULLIF(\n",
-        "        SUM(t.n) OVER (ORDER BY c.day RANGE BETWEEN INTERVAL 6 DAYS PRECEDING AND CURRENT ROW),\n",
-        "        0\n",
-        "      ),\n",
-        "    1\n",
-        "  ) AS share_7d\n",
+        "  day,\n",
+        "  reviews_7d,\n",
+        "  ROUND(100.0 * n_bugs_7d / NULLIF(reviews_7d, 0), 1) AS share_bugs,\n",
+        "  ROUND(100.0 * n_precos_7d / NULLIF(reviews_7d, 0), 1) AS share_precos,\n",
+        "  ROUND(100.0 * n_balanceamento_7d / NULLIF(reviews_7d, 0), 1) AS share_balanceamento,\n",
+        "  ROUND(100.0 * n_toxicidade_7d / NULLIF(reviews_7d, 0), 1) AS share_toxicidade,\n",
+        "  ROUND(100.0 * n_comunidade_7d / NULLIF(reviews_7d, 0), 1) AS share_comunidade,\n",
+        "  ROUND(100.0 * n_visual_7d / NULLIF(reviews_7d, 0), 1) AS share_visual\n",
         "FROM\n",
-        "  cnt c\n",
-        "    JOIN tot t\n",
-        "      ON c.day = t.day\n",
+        "  roll\n",
         "ORDER BY\n",
-        "  c.day,\n",
-        "  c.tipo_t"
+        "  day"
       ],
       "parameters": [
         {
@@ -1937,16 +1950,32 @@
                       "expression": "`day`"
                     },
                     {
-                      "name": "cnt_7d",
-                      "expression": "`cnt_7d`"
+                      "name": "reviews_7d",
+                      "expression": "`reviews_7d`"
                     },
                     {
-                      "name": "share_7d",
-                      "expression": "`share_7d`"
+                      "name": "share_bugs",
+                      "expression": "`share_bugs`"
                     },
                     {
-                      "name": "tema",
-                      "expression": "`tema`"
+                      "name": "share_precos",
+                      "expression": "`share_precos`"
+                    },
+                    {
+                      "name": "share_balanceamento",
+                      "expression": "`share_balanceamento`"
+                    },
+                    {
+                      "name": "share_toxicidade",
+                      "expression": "`share_toxicidade`"
+                    },
+                    {
+                      "name": "share_comunidade",
+                      "expression": "`share_comunidade`"
+                    },
+                    {
+                      "name": "share_visual",
+                      "expression": "`share_visual`"
                     }
                   ],
                   "disaggregated": true
@@ -1954,59 +1983,81 @@
               }
             ],
             "spec": {
-              "facet": {
-                "type": "wrap",
-                "fieldName": "tema",
-                "layout": {
-                  "column": {
-                    "type": "count",
-                    "value": 3
-                  }
-                },
-                "scale": {
-                  "type": "categorical"
-                }
-              },
               "version": 1,
+              "widgetType": "combo",
               "frame": {
                 "showTitle": true,
-                "title": "Tendência de temas — contagem e share móvel de 7 dias"
+                "title": "Volume de reviews e share de temas — média móvel de 7 dias"
               },
               "mark": {
                 "colors": [
                   "#8BCAE7",
-                  "#FF3621"
+                  "#FF3621",
+                  "#FFAB00",
+                  "#00A972",
+                  "#AB4057",
+                  "#2272B4",
+                  "#BF7080"
                 ]
               },
-              "widgetType": "combo",
               "encodings": {
                 "x": {
                   "fieldName": "day",
                   "scale": {
                     "type": "temporal"
+                  },
+                  "displayName": "",
+                  "axis": {
+                    "tickFormat": "MMM d"
                   }
                 },
                 "y": {
                   "primary": {
                     "fields": [
                       {
-                        "fieldName": "cnt_7d",
+                        "fieldName": "reviews_7d",
                         "displayName": "reviews (7d)"
                       }
                     ],
                     "scale": {
                       "type": "quantitative"
+                    },
+                    "axis": {
+                      "title": "reviews (7d)"
                     }
                   },
                   "secondary": {
                     "fields": [
                       {
-                        "fieldName": "share_7d",
-                        "displayName": "% dos reviews"
+                        "fieldName": "share_bugs",
+                        "displayName": "% Bugs"
+                      },
+                      {
+                        "fieldName": "share_precos",
+                        "displayName": "% Preços"
+                      },
+                      {
+                        "fieldName": "share_balanceamento",
+                        "displayName": "% Balanceamento"
+                      },
+                      {
+                        "fieldName": "share_toxicidade",
+                        "displayName": "% Toxicidade"
+                      },
+                      {
+                        "fieldName": "share_comunidade",
+                        "displayName": "% Comunidade"
+                      },
+                      {
+                        "fieldName": "share_visual",
+                        "displayName": "% Visual"
                       }
                     ],
                     "scale": {
                       "type": "quantitative"
+                    },
+                    "axis": {
+                      "title": "% dos reviews (7d)"
                     }
                   }
                 }
