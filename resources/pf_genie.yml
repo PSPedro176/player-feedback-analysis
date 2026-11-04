@@ -14,7 +14,7 @@
 resources:
   jobs:
     pf_genie_setup:
-      name: pf_genie_setup
+      name: pf_febar_genie_setup
       tasks:
         - task_key: setup_genie
           notebook_task:

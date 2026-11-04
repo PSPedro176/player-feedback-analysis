@@ -78,7 +78,7 @@ resources:
           - name: GAME_LOGOS_VOLUME
             value: game_logos
           - name: LAKEBASE_PROJECT
-            value: pf-games
+            value: febar-pf-games
           - name: LAKEBASE_BRANCH
             value: production
           - name: LAKEBASE_DATABASE
