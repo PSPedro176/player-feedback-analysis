@@ -38,3 +38,16 @@ resources:
             client: "3"
             dependencies:
               - google-play-scraper
+
+    # Execução manual: exporta evidências técnicas e funcionais para UC Volume.
+    pf_export_evidence:
+      name: pf_export_evidence
+      tasks:
+        - task_key: export_evidence
+          notebook_task:
+            notebook_path: ../src/export_evidence.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              pipeline_id: ${resources.pipelines.pf_enrichment.id}
+              job_names: '["pf_setup", "pf_ingest_and_enrich", "pf_weekly_report", "pf_export_evidence"]'
