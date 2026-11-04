@@ -1,3 +1,0 @@
-source,model,calls,errors,error_rate,first_inference,latest_inference
-enrichment,databricks-meta-llama-3-3-70b-instruct,9014,0,0.0,2026-11-04T15:01:22.921000,2026-11-04T15:01:22.921000
-weekly_report,databricks-meta-llama-3-3-70b-instruct,3,0,0.0,2026-11-04T15:08:40.553012,2026-11-04T15:09:21.212390
