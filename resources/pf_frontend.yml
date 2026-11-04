@@ -2,13 +2,15 @@
 # Camada de apresentação:
 # - AI/BI Dashboard (Lakeview) — game-agnóstico (descobre os jogos por DISTINCT
 #   game na tabela enriquecida), não muda ao adicionar/remover jogos.
-# - Databricks App (FastAPI + React) — relatórios por jogo, dashboard AI/BI +
-#   Genie embeddados, KPIs ao vivo e a tela de gestão de jogos monitorados.
+# - Databricks App (FastAPI + React) — relatórios por jogo, dashboard AI/BI
+#   embeddado, chat "Pergunte ao Genie" (Genie Conversation API sobre o Genie
+#   space dedicado de pf_genie.yml), KPIs ao vivo e a gestão de jogos monitorados.
 #
 # Os resource bindings do App concedem, via bundle, TODAS as permissões que o
 # service principal precisa: usar o warehouse, disparar o job de coleta, conectar
 # no Lakebase e consultar o endpoint de modelo. Os grants de UC (SELECT no schema,
-# READ no volume) são aplicados pelo pf_setup.
+# READ no volume) são aplicados pelo pf_setup; o CAN_RUN no Genie space é concedido
+# pelo pf_genie_setup (o space é criado depois do deploy — ver pf_genie.yml).
 # ---------------------------------------------------------------------------
 resources:
   dashboards:
@@ -26,10 +28,11 @@ resources:
 
   apps:
     pf_app:
-      name: player-feedback-analysis
+      name: febar-player-feedback
       description: >-
         Player Feedback Analysis. Relatórios semanais por jogo, dashboard AI/BI
-        e Genie embeddados, KPIs ao vivo e gestão de jogos monitorados.
+        embeddado, chat com o Genie space dedicado (Genie Conversation API),
+        KPIs ao vivo e gestão de jogos monitorados.
       source_code_path: ../app
 
       resources:
@@ -63,7 +66,7 @@ resources:
           - "8000"
         env:
           - name: DASHBOARD_ID
-            value: ${resources.dashboards.pf_dashboard.id}
+            value: ${resources.dashboards.pf_dashboard.dashboard_id}
           - name: SQL_WAREHOUSE_ID
             value_from: sql-warehouse
           - name: INGEST_JOB_ID
@@ -75,8 +78,13 @@ resources:
           - name: GAME_LOGOS_VOLUME
             value: game_logos
           - name: LAKEBASE_PROJECT
-            value: pf-games
+            value: febar-pf-games
           - name: LAKEBASE_BRANCH
             value: production
           - name: LAKEBASE_DATABASE
             value: databricks_postgres
+          # Genie: o App resolve o space pelo título em runtime (o space é criado pelo
+          # pf_genie_setup DEPOIS do deploy, então não há ID para injetar aqui).
+          # Para fixar um space específico, defina também GENIE_SPACE_ID.
+          - name: GENIE_SPACE_TITLE
+            value: "Player Feedback — Genie"

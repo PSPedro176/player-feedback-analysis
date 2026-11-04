@@ -1,4 +1,4 @@
-"""Rotas de API: config de embeds, gestão de jogos, KPIs, relatórios e coleta."""
+"""Rotas de API: config de embeds, gestão de jogos, KPIs, relatórios, coleta e chat Genie."""
 import time
 
 from fastapi import APIRouter, HTTPException
@@ -17,6 +17,7 @@ from ..config import (
     get_workspace_host,
 )
 from .. import games as games_mod
+from .. import genie
 from .. import lakebase
 from ..sql import run_query
 
@@ -192,3 +193,41 @@ def recent_reviews(game: str, limit: int = 8):
         """,
         parameters=[{"name": "game", "value": game}],
     )
+
+
+# --------------------------------------------------------------------------- #
+# Genie (Conversation API sobre o Genie space dedicado)
+# --------------------------------------------------------------------------- #
+def _genie_call(fn, *args):
+    """Traduz falhas do Genie em HTTP com mensagem legível para a UI."""
+    try:
+        return fn(*args)
+    except genie.GenieNotConfigured as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as e:  # noqa: BLE001
+        print(f"[genie] erro: {e}")
+        raise HTTPException(status_code=502, detail=f"Erro ao consultar o Genie: {e}")
+
+
+@router.get("/genie/space")
+def genie_space():
+    return _genie_call(genie.get_space)
+
+
+class GenieAsk(BaseModel):
+    question: str
+    conversation_id: str | None = None
+
+
+@router.post("/genie/ask")
+def genie_ask(body: GenieAsk):
+    """Pergunta (nova conversa ou follow-up). Se `done` vier false, o frontend faz polling."""
+    question = body.question.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Pergunta vazia")
+    return _genie_call(genie.ask, question, body.conversation_id)
+
+
+@router.get("/genie/conversations/{conversation_id}/messages/{message_id}")
+def genie_poll(conversation_id: str, message_id: str):
+    return _genie_call(genie.poll, conversation_id, message_id)

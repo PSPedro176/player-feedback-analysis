@@ -3,13 +3,15 @@ import { api, type AppConfig, type Game } from "./api";
 import { Spinner } from "./components/ui";
 import Overview from "./components/Overview";
 import Embed from "./components/Embed";
+import GenieChat from "./components/GenieChat";
 import ManageGames from "./components/ManageGames";
 
-type Tab = "reports" | "dashboard" | "games";
+type Tab = "reports" | "genie" | "dashboard" | "games";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "reports", label: "Relatórios" },
-  { id: "dashboard", label: "AI/BI" },
+  { id: "genie", label: "Pergunte ao Genie" },
+  { id: "dashboard", label: "Dashboard AI/BI" },
   { id: "games", label: "Jogos" },
 ];
 
@@ -80,10 +82,11 @@ export default function App() {
             {tab === "dashboard" && (
               <Embed
                 url={config.dashboard_embed_url}
-                title="AI/BI Dashboard"
-                note="Tendências, sentimento e leitura de comentários — com Genie integrado, servido por Databricks AI/BI"
+                title="Dashboard AI/BI"
+                note="Tendências, sentimento e leitura de comentários — dashboard Databricks AI/BI publicado e embeddado"
               />
             )}
+            {tab === "genie" && <GenieChat />}
             {tab === "games" && <ManageGames games={games} onChange={reloadGames} />}
           </div>
         )}
@@ -93,7 +96,7 @@ export default function App() {
         <div className="mx-auto flex max-w-content flex-wrap items-center justify-between gap-4 px-6 py-8">
           <span className="brand-title text-lg text-white">PLAYER FEEDBACK</span>
           <span className="text-xs uppercase tracking-[0.12em]">
-            Powered by Databricks · AI Functions · AI/BI · Genie
+            Powered by Databricks · AI Functions · AI/BI Dashboard · Genie Conversation API · Lakebase
           </span>
         </div>
       </footer>

@@ -15,7 +15,7 @@ from .config import get_workspace_client
 
 # Lakebase Autoscaling — o cadastro vive aqui (CDF exige este tier). Branch e database são os
 # auto-criados pelo projeto; o endpoint tem id auto-gerado e é descoberto via list_endpoints.
-LAKEBASE_PROJECT = os.environ.get("LAKEBASE_PROJECT", "pf-games")
+LAKEBASE_PROJECT = os.environ.get("LAKEBASE_PROJECT", "febar-pf-games")
 LAKEBASE_BRANCH = os.environ.get("LAKEBASE_BRANCH", "production")
 LAKEBASE_DATABASE = os.environ.get("LAKEBASE_DATABASE", "databricks_postgres")
 
