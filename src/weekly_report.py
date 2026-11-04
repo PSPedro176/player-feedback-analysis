@@ -2,17 +2,13 @@
 # MAGIC %md
 # MAGIC # Relatório semanal por jogo
 # MAGIC
-# MAGIC Para cada jogo, amostra aleatória de ~700 comentários dos últimos 7 dias e
-# MAGIC gera um relatório textual consolidado (20-30 linhas) via `ai_query`.
-# MAGIC
-# MAGIC - `grade` (green/yellow/red) é calculado **deterministicamente** a partir de
-# MAGIC   agregados (nota média + taxa de bug + toxicidade), não pelo LLM.
-# MAGIC - Saída em `weekly_reports`.
+# MAGIC Gera relatório por jogo sobre uma janela móvel configurável e registra cada
+# MAGIC chamada `ai_query` em uma tabela Delta de auditoria governada.
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog", "player_feedback_catalog")
-dbutils.widgets.text("schema", "player_feedback")
+dbutils.widgets.text("catalog", "perdomo_demos_catalog")
+dbutils.widgets.text("schema", "febar_player_feedback")
 dbutils.widgets.text("ai_model", "databricks-meta-llama-3-3-70b-instruct")
 dbutils.widgets.text("sample_size", "700")
 dbutils.widgets.text("report_window_days", "7")
@@ -23,22 +19,37 @@ ai_model = dbutils.widgets.get("ai_model")
 sample_size = int(dbutils.widgets.get("sample_size"))
 window_days = int(dbutils.widgets.get("report_window_days"))
 
+if sample_size <= 0 or window_days <= 0:
+    raise ValueError("sample_size e report_window_days devem ser positivos")
+
 enriched = f"`{catalog}`.`{schema}`.reviews_enriched"
 reports = f"`{catalog}`.`{schema}`.weekly_reports"
+audit_reports = f"`{catalog}`.`{schema}`.ai_inference_log_reports"
+PROMPT_VERSION = "weekly_report_v1"
 
 # COMMAND ----------
 
+from datetime import date, datetime, timedelta
 from pyspark.sql import functions as F
-from datetime import date, timedelta
+from pyspark.sql.types import (
+    DateType,
+    DoubleType,
+    IntegerType,
+    LongType,
+    StringType,
+    StructField,
+    StructType,
+    TimestampType,
+)
 
-# Segunda-feira da semana atual (ISO) como chave do relatório.
+# Segunda-feira da semana atual (ISO) como chave idempotente do relatório.
 today = date.today()
 report_week = today - timedelta(days=today.weekday())
-print(f"report_week = {report_week} | janela = últimos {window_days} dias")
+print(f"report_week = {report_week} | janela móvel = últimos {window_days} dias")
 
 # COMMAND ----------
 
-# MAGIC %md ## Agregados determinísticos por jogo (janela de 7 dias)
+# MAGIC %md ## Agregados determinísticos por jogo
 
 # COMMAND ----------
 
@@ -56,7 +67,7 @@ agg = spark.sql(f"""
         DATE(MIN(at))                                    AS window_start,
         DATE(MAX(at))                                    AS window_end,
         AVG(CASE WHEN bug_report THEN 1.0 ELSE 0.0 END)  AS bug_rate,
-        AVG(CASE WHEN toxicity  THEN 1.0 ELSE 0.0 END)   AS tox_rate,
+        AVG(CASE WHEN toxicity THEN 1.0 ELSE 0.0 END)    AS tox_rate,
         AVG(CASE WHEN lower(sentiment) = 'negative' THEN 1.0 ELSE 0.0 END) AS neg_rate
     FROM win
     GROUP BY game
@@ -64,6 +75,7 @@ agg = spark.sql(f"""
 display(agg)
 
 # COMMAND ----------
+
 
 def grade_of(avg_score, bug_rate, neg_rate):
     """Regra determinística de nota (não usa LLM)."""
@@ -75,36 +87,39 @@ def grade_of(avg_score, bug_rate, neg_rate):
         return "red"
     return "yellow"
 
-# COMMAND ----------
-
-# MAGIC %md ## Amostra + geração do relatório textual por jogo
 
 # COMMAND ----------
 
-agg_rows = {r["game"]: r for r in agg.collect()}
+# MAGIC %md ## Amostra, inferência e audit trail
+
+# COMMAND ----------
+
+agg_rows = {row["game"]: row for row in agg.collect()}
 out_rows = []
+audit_rows = []
 
-for game, a in agg_rows.items():
-    # Amostra aleatória de até `sample_size` comentários da janela.
-    sample = spark.sql(f"""
+for game, aggregates in agg_rows.items():
+    sample = spark.sql(
+        f"""
         SELECT content, score, sentiment,
                bug_report, pricing, game_balance, opinion,
                community, toxicity, visuals
         FROM {enriched}
-        WHERE game = '{game}'
+        WHERE game = :game
           AND at >= current_timestamp() - INTERVAL {window_days} DAYS
           AND content IS NOT NULL
         ORDER BY rand()
         LIMIT {sample_size}
-    """)
-
-    # Concatena os comentários amostrados num único blob para o prompt.
-    blob = "\n".join(
-        f"- ({r['score']}/5, {r['sentiment']}) {r['content']}"
-        for r in sample.collect()
+        """,
+        args={"game": game},
     )
+    sampled_rows = sample.collect()
 
-    period = f"{a['window_start']} to {a['window_end']}"
+    blob = "\n".join(
+        f"- ({row['score']}/5, {row['sentiment']}) {row['content']}"
+        for row in sampled_rows
+    )
+    period = f"{aggregates['window_start']} to {aggregates['window_end']}"
     prompt = (
         f"You are a product analyst at a mobile game studio. Below is a random sample "
         f"of player reviews for the game '{game}' collected in the last {window_days} "
@@ -112,40 +127,62 @@ for game, a in agg_rows.items():
         f"Write a consolidated report in Brazilian Portuguese, between 20 and 30 lines, "
         f"covering: overall sentiment, top reported bugs, pricing/monetization feedback, "
         f"game balance and matchmaking, community/social remarks, toxicity signals, and "
-        f"visuals. Start by stating the period covered ({period}) and the number of "
-        f"reviews analyzed ({int(a['n_reviews'])}). "
-        f"End with a section titled 'Principais tópicos da semana' containing 2 to 4 "
-        f"bullet points with the most relevant themes that actually stood out in this "
-        f"week's reviews. Only include a bullet if there is a real recurring signal — "
-        f"if nothing notable stood out, write a single line saying the week was stable "
-        f"without notable topics. Do NOT invent topics and do NOT give recommendations. "
-        f"Be specific and cite recurring themes. Reviews:\n{blob}"
+        f"visuals. Start by stating the period covered ({period}), the total reviews in "
+        f"the window ({int(aggregates['n_reviews'])}), and the sampled reviews used "
+        f"({len(sampled_rows)}). End with a section titled 'Principais tópicos da semana' "
+        f"containing 2 to 4 bullet points with recurring themes. Do not invent topics or "
+        f"give recommendations. Reviews:\n{blob}"
     )
-    # Escapa aspas simples para embutir no SQL.
-    prompt_sql = prompt.replace("'", "''")
 
-    report_text = spark.sql(
-        f"SELECT ai_query('{ai_model}', '{prompt_sql}') AS r"
-    ).collect()[0]["r"]
+    inference = spark.sql(
+        "SELECT ai_query(:model, :prompt, failOnError => false) AS result",
+        args={"model": ai_model, "prompt": prompt},
+    ).collect()[0]["result"]
+    report_text = inference["response"]
+    error_message = inference["errorMessage"]
+    inferred_at = datetime.utcnow()
 
-    grade = grade_of(a["avg_score"], a["bug_rate"], a["neg_rate"])
+    audit_rows.append({
+        "report_week": report_week,
+        "game": game,
+        "source": "weekly_report",
+        "model": ai_model,
+        "prompt_version": PROMPT_VERSION,
+        "prompt_text": prompt,
+        "n_sampled": len(sampled_rows),
+        "raw_response": report_text,
+        "error_message": error_message,
+        "inferred_at": inferred_at,
+    })
 
+    grade = grade_of(
+        aggregates["avg_score"], aggregates["bug_rate"], aggregates["neg_rate"]
+    )
     out_rows.append({
         "report_week": report_week,
         "game": game,
         "grade": grade,
         "report": report_text,
-        "window_start": a["window_start"],
-        "window_end": a["window_end"],
-        "n_reviews": int(a["n_reviews"]),
-        "avg_score": float(a["avg_score"]) if a["avg_score"] is not None else None,
+        "window_start": aggregates["window_start"],
+        "window_end": aggregates["window_end"],
+        "n_reviews": int(aggregates["n_reviews"]),
+        "avg_score": (
+            float(aggregates["avg_score"])
+            if aggregates["avg_score"] is not None
+            else None
+        ),
+        "bug_report_rate": float(aggregates["bug_rate"] or 0.0),
+        "negative_rate": float(aggregates["neg_rate"] or 0.0),
+        "toxicity_rate": float(aggregates["tox_rate"] or 0.0),
     })
-    print(f"  {game:14s} → grade={grade} | n={a['n_reviews']} "
-          f"| {a['window_start']}→{a['window_end']}")
+    print(
+        f"  {game:14s} → grade={grade} | total={aggregates['n_reviews']} "
+        f"| sample={len(sampled_rows)} | erro={bool(error_message)}"
+    )
 
 # COMMAND ----------
 
-# MAGIC %md ## Grava em weekly_reports (idempotente por report_week+game)
+# MAGIC %md ## Grava auditoria append-only e relatório idempotente
 
 # COMMAND ----------
 
@@ -153,11 +190,23 @@ if not out_rows:
     print("Nenhum jogo com reviews na janela. Nada a gravar.")
     dbutils.notebook.exit("sem dados")
 
-from pyspark.sql.types import (
-    StructType, StructField, DateType, StringType, IntegerType, DoubleType,
+audit_schema = StructType([
+    StructField("report_week", DateType()),
+    StructField("game", StringType()),
+    StructField("source", StringType()),
+    StructField("model", StringType()),
+    StructField("prompt_version", StringType()),
+    StructField("prompt_text", StringType()),
+    StructField("n_sampled", LongType()),
+    StructField("raw_response", StringType()),
+    StructField("error_message", StringType()),
+    StructField("inferred_at", TimestampType()),
+])
+spark.createDataFrame(audit_rows, schema=audit_schema).write.mode("append").saveAsTable(
+    audit_reports
 )
 
-out_schema = StructType([
+report_schema = StructType([
     StructField("report_week", DateType()),
     StructField("game", StringType()),
     StructField("grade", StringType()),
@@ -166,23 +215,33 @@ out_schema = StructType([
     StructField("window_end", DateType()),
     StructField("n_reviews", IntegerType()),
     StructField("avg_score", DoubleType()),
+    StructField("bug_report_rate", DoubleType()),
+    StructField("negative_rate", DoubleType()),
+    StructField("toxicity_rate", DoubleType()),
 ])
 
-df = (spark.createDataFrame(out_rows, schema=out_schema)
-      .withColumn("_generated_at", F.current_timestamp()))
-df.createOrReplaceTempView("new_reports")
+report_df = (
+    spark.createDataFrame(out_rows, schema=report_schema)
+    .withColumn("_generated_at", F.current_timestamp())
+)
+report_df.createOrReplaceTempView("new_reports")
 
-# MERGE: reexecutar na mesma semana substitui o relatório do jogo.
 spark.sql(f"""
-    MERGE INTO {reports} AS t
-    USING new_reports AS s
-    ON t.report_week = s.report_week AND t.game = s.game
+    MERGE INTO {reports} AS target
+    USING new_reports AS source
+    ON target.report_week = source.report_week AND target.game = source.game
     WHEN MATCHED THEN UPDATE SET *
     WHEN NOT MATCHED THEN INSERT *
 """)
 
 print(f"Gravados {len(out_rows)} relatórios para a semana {report_week}.")
 display(spark.sql(
-    f"SELECT report_week, game, grade, window_start, window_end, n_reviews, avg_score "
-    f"FROM {reports} WHERE report_week = '{report_week}' ORDER BY game"
+    f"""
+    SELECT report_week, game, grade, window_start, window_end, n_reviews,
+           avg_score, bug_report_rate, negative_rate, toxicity_rate
+    FROM {reports}
+    WHERE report_week = :report_week
+    ORDER BY game
+    """,
+    args={"report_week": report_week},
 ))

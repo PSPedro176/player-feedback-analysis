@@ -56,11 +56,24 @@ resources:
           pipeline_task:
             pipeline_id: ${resources.pipelines.pf_enrichment.id}
 
+        # As views dependem das tabelas do pipeline; esta etapa as cria/atualiza
+        # somente após o primeiro update bem-sucedido do SDP.
+        - task_key: refresh_governed_views
+          depends_on:
+            - task_key: enrich
+          notebook_task:
+            notebook_path: ../src/setup.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              app_name: player-feedback-analysis
+              refresh_views_only: "true"
+
         # Porta condicional: só segue se a task extract sinalizou jogos novos
         # (games_current sem relatório em weekly_reports) via taskValue new_games.
         - task_key: has_new_games
           depends_on:
-            - task_key: enrich
+            - task_key: refresh_governed_views
           condition_task:
             left: "{{tasks.extract.values.new_games}}"
             op: "GREATER_THAN"
