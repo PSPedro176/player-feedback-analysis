@@ -139,7 +139,12 @@
           "\n",
           "## Estilo de resposta / Answer style\n",
           "- Responda no idioma da pergunta. Mostre taxas como percentual com 1 casa decimal.\n",
-          "- Ordene rankings do maior para o menor e inclua `n_reviews` para dar contexto de volume."
+          "- Ordene rankings do maior para o menor e inclua `n_reviews` para dar contexto de volume.\n",
+          "- Notas médias (`avg_score`) sempre com `round(avg_score, 2)`.\n",
+          "- Se um jogo tiver menos de 300 reviews no período consultado, avise que o volume é baixo e que a comparação com os demais jogos é menos confiável.\n",
+          "\n",
+          "## Temas / Topics\n",
+          "- \"temas\", \"tópicos\", \"assuntos\" / \"topics\", \"themes\" = os rótulos específicos bug_report, pricing, game_balance, community, toxicity e visuals. NÃO inclua `opinion` em rankings de temas: ele indica opinião genérica sem tema; só o mostre se o usuário pedir explicitamente."
         ]
       }
     ],
@@ -245,7 +250,6 @@
           "    count_if(bug_report) AS bug_report,\n",
           "    count_if(pricing) AS pricing,\n",
           "    count_if(game_balance) AS game_balance,\n",
-          "    count_if(opinion) AS opinion,\n",
           "    count_if(community) AS community,\n",
           "    count_if(toxicity) AS toxicity,\n",
           "    count_if(visuals) AS visuals\n",
@@ -253,7 +257,7 @@
           "  WHERE lower(sentiment) = 'negative'\n",
           "  GROUP BY game\n",
           ")\n",
-          "UNPIVOT (n_reviews FOR topic IN (bug_report, pricing, game_balance, opinion, community, toxicity, visuals))\n",
+          "UNPIVOT (n_reviews FOR topic IN (bug_report, pricing, game_balance, community, toxicity, visuals))\n",
           "ORDER BY game, n_reviews DESC"
         ]
       }
