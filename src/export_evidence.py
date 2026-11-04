@@ -11,6 +11,7 @@ dbutils.widgets.text("catalog", "perdomo_demos_catalog")
 dbutils.widgets.text("schema", "febar_player_feedback")
 dbutils.widgets.text("pipeline_id", "")
 dbutils.widgets.text("job_ids", "{}")
+dbutils.widgets.text("genie_setup_job_id", "")
 
 catalog = dbutils.widgets.get("catalog")
 schema = dbutils.widgets.get("schema")
@@ -29,6 +30,9 @@ from databricks.sdk import WorkspaceClient
 
 w = WorkspaceClient()
 job_ids = json.loads(dbutils.widgets.get("job_ids"))
+genie_setup_job_id = dbutils.widgets.get("genie_setup_job_id").strip()
+if genie_setup_job_id:
+    job_ids["pf_febar_genie_setup"] = genie_setup_job_id
 run_ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
 evidence_dir = f"/Volumes/{catalog}/{schema}/evidence/{run_ts}"
 os.makedirs(evidence_dir, exist_ok=True)

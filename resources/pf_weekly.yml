@@ -50,4 +50,4 @@ resources:
               catalog: ${var.catalog}
               schema: ${var.schema}
               pipeline_id: ${resources.pipelines.pf_enrichment.id}
-              job_ids: '{"pf_febar_setup":"${resources.jobs.pf_setup.id}","pf_febar_ingest_and_enrich":"${resources.jobs.pf_ingest_and_enrich.id}","pf_febar_weekly_report":"${resources.jobs.pf_weekly_report.id}","pf_febar_export_evidence":"${resources.jobs.pf_export_evidence.id}"}'
+              job_ids: '{"pf_febar_setup":"${resources.jobs.pf_setup.id}","pf_febar_ingest_and_enrich":"${resources.jobs.pf_ingest_and_enrich.id}","pf_febar_weekly_report":"${resources.jobs.pf_weekly_report.id}","pf_febar_export_evidence":"{{job.id}}"}'
