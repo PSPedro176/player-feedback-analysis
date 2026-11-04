@@ -260,8 +260,8 @@ for expected_name in job_names:
 
     job = matching_jobs[0]
     for run in w.jobs.list_runs(job_id=job.job_id, limit=10):
-        duration_ms = None
-        if run.start_time and run.end_time:
+        duration_ms = run.execution_duration
+        if duration_ms is None and run.start_time and run.end_time:
             duration_ms = run.end_time - run.start_time
         job_runs.append({
             "job_name": expected_name,
@@ -290,8 +290,7 @@ if pipeline_id:
     pipeline_updates = json_value(updates_payload.get("updates", []))
     escaped_pipeline_id = pipeline_id.replace("'", "''")
     expectation_events = rows_from_df(spark.sql(f"""
-        SELECT timestamp, event_type, origin.update_id AS update_id,
-               origin.flow_name AS flow_name, details
+        SELECT timestamp, event_type, origin.update_id AS update_id, details
         FROM event_log('{escaped_pipeline_id}')
         WHERE event_type = 'flow_progress'
           AND details LIKE '%expectations%'
