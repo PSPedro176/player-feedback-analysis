@@ -1,0 +1,13 @@
+game,sentiment,n_reviews,n_bug_reports,n_pricing,n_game_balance,n_toxicity,n_visuals,n_community,n_opinion
+Candy Crush Saga,mixed,145,38,31,42,3,3,3,137
+Candy Crush Saga,negative,324,120,104,78,74,12,5,229
+Candy Crush Saga,neutral,293,1,5,2,2,1,1,177
+Candy Crush Saga,positive,2238,4,12,31,3,32,16,2198
+Clash Royale,mixed,354,60,74,190,34,5,39,321
+Clash Royale,negative,1028,245,278,555,419,8,87,673
+Clash Royale,neutral,289,6,7,17,17,5,3,148
+Clash Royale,positive,1329,1,14,44,11,25,37,1293
+Free Fire,mixed,260,47,47,88,30,18,56,235
+Free Fire,negative,443,148,45,145,151,14,87,275
+Free Fire,neutral,471,5,15,7,11,6,17,182
+Free Fire,positive,1840,5,38,15,11,60,81,1763

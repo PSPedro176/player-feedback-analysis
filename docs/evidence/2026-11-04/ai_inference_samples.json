@@ -1,0 +1,47 @@
+[
+  {
+    "source": "enrichment",
+    "game": "Clash Royale",
+    "model": "databricks-meta-llama-3-3-70b-instruct",
+    "prompt_version": "enrichment_dimensions_v1",
+    "raw_response": "{\"visuals\": false, \"community\": false, \"toxicity\": false, \"bug_report\": false, \"opinion\": false, \"game_balance\": false, \"pricing\": false}",
+    "error_message": null,
+    "inferred_at": "2026-11-04T15:01:22.921000"
+  },
+  {
+    "source": "enrichment",
+    "game": "Clash Royale",
+    "model": "databricks-meta-llama-3-3-70b-instruct",
+    "prompt_version": "enrichment_dimensions_v1",
+    "raw_response": "{\"visuals\": false, \"community\": false, \"toxicity\": false, \"bug_report\": false, \"opinion\": true, \"game_balance\": false, \"pricing\": false}",
+    "error_message": null,
+    "inferred_at": "2026-11-04T15:01:22.921000"
+  },
+  {
+    "source": "enrichment",
+    "game": "Candy Crush Saga",
+    "model": "databricks-meta-llama-3-3-70b-instruct",
+    "prompt_version": "enrichment_dimensions_v1",
+    "raw_response": "{\"visuals\": false, \"community\": false, \"toxicity\": false, \"bug_report\": false, \"opinion\": true, \"game_balance\": false, \"pricing\": false}",
+    "error_message": null,
+    "inferred_at": "2026-11-04T15:01:22.921000"
+  },
+  {
+    "source": "enrichment",
+    "game": "Clash Royale",
+    "model": "databricks-meta-llama-3-3-70b-instruct",
+    "prompt_version": "enrichment_dimensions_v1",
+    "raw_response": "{\"visuals\": false, \"community\": false, \"toxicity\": false, \"bug_report\": false, \"opinion\": true, \"game_balance\": false, \"pricing\": false}",
+    "error_message": null,
+    "inferred_at": "2026-11-04T15:01:22.921000"
+  },
+  {
+    "source": "enrichment",
+    "game": "Candy Crush Saga",
+    "model": "databricks-meta-llama-3-3-70b-instruct",
+    "prompt_version": "enrichment_dimensions_v1",
+    "raw_response": "{\"visuals\": false, \"community\": false, \"toxicity\": false, \"bug_report\": false, \"opinion\": true, \"game_balance\": false, \"pricing\": false}",
+    "error_message": null,
+    "inferred_at": "2026-11-04T15:01:22.921000"
+  }
+]

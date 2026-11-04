@@ -1,0 +1,21 @@
+{
+  "_endpoint": "GET /api/genie/space",
+  "response": {
+    "space_id": "01f1d862100c1ba9a04bd2ea86919279",
+    "title": "Player Feedback — Genie",
+    "description": "Genie space do Player Feedback: reviews da Google Play enriquecidos por AI Functions (sentimento + 7 rótulos), resumo semanal por jogo, relatórios semanais e auditoria de IA.",
+    "url": "https://fevm-perdomo-demos.cloud.databricks.com/genie/rooms/01f1d862100c1ba9a04bd2ea86919279",
+    "sample_questions": [
+      "Quais jogos tiveram mais bug reports na semana passada?",
+      "Como evoluiu o sentimento negativo de cada jogo nas últimas 4 semanas?",
+      "Qual a nota do último relatório semanal de cada jogo?",
+      "Qual a taxa de erro das chamadas de IA por modelo?",
+      "Qual a distribuição de sentimento por jogo?",
+      "Qual jogo teve a maior taxa de toxicidade na semana passada?",
+      "Quais são os temas mais citados nos reviews negativos de cada jogo?",
+      "Mostre os 10 reviews mais recentes com bug report",
+      "Which game had the lowest average score last week?",
+      "Quais jogos estão sendo monitorados atualmente?"
+    ]
+  }
+}

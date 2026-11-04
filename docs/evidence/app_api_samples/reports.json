@@ -1,0 +1,38 @@
+{
+  "_endpoint": "GET /api/reports (texto do relatório truncado em 600 caracteres)",
+  "response": [
+    {
+      "game": "Candy Crush Saga",
+      "report_week": "2026-11-02",
+      "grade": "green",
+      "report": "Relatório de Análise de Revisões do Jogo Candy Crush Saga\n\nPeríodo: 2026-10-28 a 2026-11-03\nTotal de Revisões: 1574\nRevisões Amostradas: 700\n\nO sentimento geral das revisões é positivo, com a maioria dos jogadores elogiando o jogo por ser divertido, relaxante e viciante. No entanto, alguns jogadores relataram problemas técnicos, como travamentos e perda de progresso.\n\nOs principais bugs relatados incluem:\n- Travamentos e fechamento do jogo após assistir a anúncios\n- Perda de progresso e gold bars\n- Problemas com a compra de itens e boosters\n\nQuanto à monetização, alguns jogadores se queixaram  … [truncado para a evidência]",
+      "n_reviews": 1574,
+      "avg_score": 4.39,
+      "window_start": "2026-10-28",
+      "window_end": "2026-11-03",
+      "_generated_at": "2026-11-04T15:09:25.973Z"
+    },
+    {
+      "game": "Clash Royale",
+      "report_week": "2026-11-02",
+      "grade": "yellow",
+      "report": "O período coberto por este relatório é de 2026-10-28 a 2026-11-03, com um total de 1889 avaliações de jogadores coletadas e 700 delas foram amostradas para análise.\n\nO sentimento geral das avaliações é misto, com muitos jogadores expressando satisfação com o jogo, enquanto outros relatam frustrações com vários aspectos, como o sistema de emparelhamento, a monetização e a falta de equilíbrio entre as cartas.\n\nOs principais bugs relatados incluem problemas de conexão, travamentos e erros durante as partidas. Alguns jogadores também mencionam a necessidade de melhorias na interface do usuário e n … [truncado para a evidência]",
+      "n_reviews": 1889,
+      "avg_score": 3.59,
+      "window_start": "2026-10-28",
+      "window_end": "2026-11-03",
+      "_generated_at": "2026-11-04T15:09:25.973Z"
+    },
+    {
+      "game": "Free Fire",
+      "report_week": "2026-11-02",
+      "grade": "green",
+      "report": "Período coberto: 2026-11-01 a 2026-11-03\nTotal de avaliações na janela: 3014\nAvaliações amostradas utilizadas: 700\n\nO sentimento geral das avaliações é positivo, com muitos jogadores elogiando o jogo e sua jogabilidade. No entanto, também há críticas e sugestões para melhorias.\n\nOs principais bugs relatados incluem problemas de conexão, travamentos e erros de renderização. Alguns jogadores também relataram problemas com a compra de diamantes e a falta de resposta do suporte.\n\nEm relação à monetização, alguns jogadores consideram que o jogo é muito caro e que os preços dos diamantes são altos.  … [truncado para a evidência]",
+      "n_reviews": 3014,
+      "avg_score": 4.34,
+      "window_start": "2026-11-01",
+      "window_end": "2026-11-03",
+      "_generated_at": "2026-11-04T15:09:25.973Z"
+    }
+  ]
+}

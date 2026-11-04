@@ -79,10 +79,11 @@ player_feedback/
 
 ## 3. Deploy
 
-Pré-requisito único: um **catálogo** no workspace (o `pf_setup` tenta criar `player_feedback_catalog`
-best-effort; se não tiver permissão de metastore, crie-o antes ou ajuste a variável `catalog`).
-`databricks.yml` traz `workspace.host` e `run_as.user_name` como placeholders (`<SEU_WORKSPACE>`,
-`<seu.email@empresa.com>`) — substitua pelos dados do seu próprio workspace antes do deploy.
+Pré-requisito único: um **catálogo** no workspace (default `perdomo_demos_catalog`, schema
+`febar_player_feedback`; o `pf_setup` tenta criar o catálogo best-effort — sem permissão de
+metastore, crie-o antes ou ajuste a variável `catalog`). O target `dev` do `databricks.yml` aponta
+para o workspace `fevm-perdomo-demos` — troque `workspace.host` e `run_as.user_name` pelos dados do
+seu workspace antes do deploy.
 O warehouse serverless, jobs,
 pipeline, dashboard, App e as permissões do SP (bindings) vêm no bundle; o **Lakebase Autoscaling**
 (project/branch/endpoint/database + CDF) é provisionado pelo `pf_setup` via `w.postgres` — o tier
@@ -172,3 +173,25 @@ sugestões de follow-up.
 - Mostre os 10 reviews mais recentes com bug report
 - Which game had the lowest average score last week?
 - Quais jogos estão sendo monitorados atualmente?
+
+## 6. Evidências de execução
+
+Execução ponta a ponta de 2026-11-04 no workspace `fevm-perdomo-demos` (bundle `febar_player_feedback`,
+target `dev`): 3 jogos (Free Fire, Clash Royale, Candy Crush Saga), 9.014 reviews classificados (0 erros
+de IA), 3 relatórios semanais, Genie space respondendo com dados reais.
+
+- **App implantado**: https://febar-player-feedback-7474652474621326.aws.databricksapps.com (login SSO do workspace)
+- **Genie space**: https://fevm-perdomo-demos.cloud.databricks.com/genie/rooms/01f1d862100c1ba9a04bd2ea86919279
+- [`docs/evidence/deploy_log.md`](docs/evidence/deploy_log.md) — comandos, run IDs com links, durações,
+  estados finais, contagens de linhas, problemas encontrados e como foram corrigidos.
+- [`docs/evidence/genie_conversations.md`](docs/evidence/genie_conversations.md) — 10 perguntas ao Genie
+  (SQL gerado, top 10 linhas, resposta) conferidas contra SQL direto, e os ajustes de instruções feitos.
+- [`docs/evidence/app_api_samples/`](docs/evidence/app_api_samples/) — respostas JSON de `/api/overview`,
+  `/api/reports`, `/api/games`, `/api/config`, `/api/genie/space`, `/api/genie/ask`.
+- [`docs/evidence/2026-11-04/`](docs/evidence/2026-11-04/) — pacote gerado pelo job `pf_export_evidence`
+  (contagens, distribuição de classificações, amostra de reviews classificados, relatórios, auditoria de IA,
+  histórico de jobs/pipeline e expectations), copiado do Volume
+  `/Volumes/perdomo_demos_catalog/febar_player_feedback/evidence/20261104T152706Z`.
+
+Os arquivos não trazem dados pessoais: sem `user_name`, sem IDs de review (nem em hash) e com o texto
+dos reviews truncado em 300 caracteres.

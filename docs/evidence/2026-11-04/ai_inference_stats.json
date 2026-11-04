@@ -1,0 +1,20 @@
+[
+  {
+    "source": "enrichment",
+    "model": "databricks-meta-llama-3-3-70b-instruct",
+    "calls": 9014,
+    "errors": 0,
+    "error_rate": 0.0,
+    "first_inference": "2026-11-04T15:01:22.921000",
+    "latest_inference": "2026-11-04T15:01:22.921000"
+  },
+  {
+    "source": "weekly_report",
+    "model": "databricks-meta-llama-3-3-70b-instruct",
+    "calls": 3,
+    "errors": 0,
+    "error_rate": 0.0,
+    "first_inference": "2026-11-04T15:08:40.553012",
+    "latest_inference": "2026-11-04T15:09:21.212390"
+  }
+]

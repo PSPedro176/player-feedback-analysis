@@ -1,0 +1,52 @@
+[
+  {
+    "object_name": "ai_inference_log",
+    "row_count": 9017,
+    "error": null
+  },
+  {
+    "object_name": "ai_inference_log_enrichment",
+    "row_count": 9014,
+    "error": null
+  },
+  {
+    "object_name": "ai_inference_log_reports",
+    "row_count": 3,
+    "error": null
+  },
+  {
+    "object_name": "games_current",
+    "row_count": 3,
+    "error": null
+  },
+  {
+    "object_name": "lb_games_history",
+    "row_count": 3,
+    "error": null
+  },
+  {
+    "object_name": "reviews_enriched",
+    "row_count": 9014,
+    "error": null
+  },
+  {
+    "object_name": "reviews_enrichment_inference",
+    "row_count": 9014,
+    "error": null
+  },
+  {
+    "object_name": "reviews_raw",
+    "row_count": 9014,
+    "error": null
+  },
+  {
+    "object_name": "weekly_game_summary",
+    "row_count": 10,
+    "error": null
+  },
+  {
+    "object_name": "weekly_reports",
+    "row_count": 3,
+    "error": null
+  }
+]

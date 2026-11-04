@@ -1,0 +1,11 @@
+object_name,row_count,error
+ai_inference_log,9017,
+ai_inference_log_enrichment,9014,
+ai_inference_log_reports,3,
+games_current,3,
+lb_games_history,3,
+reviews_enriched,9014,
+reviews_enrichment_inference,9014,
+reviews_raw,9014,
+weekly_game_summary,10,
+weekly_reports,3,

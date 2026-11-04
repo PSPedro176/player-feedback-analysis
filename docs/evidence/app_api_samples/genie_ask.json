@@ -1,0 +1,72 @@
+{
+  "_endpoint": "POST /api/genie/ask → resposta pendente (done=false); depois GET /api/genie/conversations/{conversation_id}/messages/{message_id} até done=true",
+  "request": {
+    "question": "Quais jogos tiveram mais bug reports na semana passada?"
+  },
+  "ask_response_pending": {
+    "conversation_id": "01f1d86489e912df9f99ebc028ee36cd",
+    "message_id": "01f1d86489ff137e9737f7d3dab846c1",
+    "status": "ASKING_AI",
+    "done": false,
+    "text": "Na semana passada (início em **2026-10-26**), os jogos com mais bug reports foram **Clash Royale** com **186** casos, **Candy Crush Saga** com **88** e **Free Fire** com **22**. As taxas de bug report foram **9,6%**, **5,5%** e **12,8%**, respectivamente; entre os 3 jogos retornados, **Clash Royale** liderou em volume absoluto, enquanto **Free Fire** teve a maior proporção sobre o total de reviews.",
+    "sql": "WITH ranked_games AS (\n  SELECT\n    `game`,\n    `week_start`,\n    `n_bug_reports`,\n    `n_reviews`,\n    ROUND(`bug_report_rate` * 100, 1) AS `bug_report_pct`,\n    RANK() OVER (ORDER BY `n_bug_reports` DESC) AS `bug_report_rank`\n  FROM `perdomo_demos_catalog`.`febar_player_feedback`.`weekly_game_summary`\n  WHERE `week_start` = date_sub(CAST(date_trunc('WEEK', current_date()) AS DATE), 7)\n    AND `game` IS NOT NULL\n)\nSELECT\n  `game`,\n  `week_start`,\n  `n_bug_reports`,\n  `n_reviews`,\n  `bug_report_pct`\nFROM ranked_games\nORDER BY `n_bug_reports` DESC, `game` ASC",
+    "query_description": "Você quer ver quais jogos tiveram o maior número de avaliações que mencionaram bugs na semana passada, mostrando também o total de avaliações e a porcentagem dessas avaliações com bugs para cada jogo.",
+    "columns": [],
+    "rows": [],
+    "row_count": null,
+    "truncated": false,
+    "suggested_questions": [
+      "Quais jogos tiveram a maior taxa percentual de bug reports na semana passada?",
+      "Qual foi a nota média dos jogos com mais bug reports na semana passada?",
+      "Quais jogos ativos tiveram mais bug reports na semana passada?"
+    ],
+    "error": null
+  },
+  "poll_response_final (após 1 poll)": {
+    "conversation_id": "01f1d86489e912df9f99ebc028ee36cd",
+    "message_id": "01f1d86489ff137e9737f7d3dab846c1",
+    "status": "COMPLETED",
+    "done": true,
+    "text": "Na semana passada (início em **2026-10-26**), os jogos com mais bug reports foram **Clash Royale** com **186** casos, **Candy Crush Saga** com **88** e **Free Fire** com **22**. As taxas de bug report foram **9,6%**, **5,5%** e **12,8%**, respectivamente; entre os 3 jogos retornados, **Clash Royale** liderou em volume absoluto, enquanto **Free Fire** teve a maior proporção sobre o total de reviews.",
+    "sql": "WITH ranked_games AS (\n  SELECT\n    `game`,\n    `week_start`,\n    `n_bug_reports`,\n    `n_reviews`,\n    ROUND(`bug_report_rate` * 100, 1) AS `bug_report_pct`,\n    RANK() OVER (ORDER BY `n_bug_reports` DESC) AS `bug_report_rank`\n  FROM `perdomo_demos_catalog`.`febar_player_feedback`.`weekly_game_summary`\n  WHERE `week_start` = date_sub(CAST(date_trunc('WEEK', current_date()) AS DATE), 7)\n    AND `game` IS NOT NULL\n)\nSELECT\n  `game`,\n  `week_start`,\n  `n_bug_reports`,\n  `n_reviews`,\n  `bug_report_pct`\nFROM ranked_games\nORDER BY `n_bug_reports` DESC, `game` ASC",
+    "query_description": "Você quer ver quais jogos tiveram o maior número de avaliações que mencionaram bugs na semana passada, mostrando também o total de avaliações e a porcentagem dessas avaliações com bugs para cada jogo.",
+    "columns": [
+      "game",
+      "week_start",
+      "n_bug_reports",
+      "n_reviews",
+      "bug_report_pct"
+    ],
+    "rows": [
+      [
+        "Clash Royale",
+        "2026-10-26",
+        "186",
+        "1942",
+        "9.6"
+      ],
+      [
+        "Candy Crush Saga",
+        "2026-10-26",
+        "88",
+        "1612",
+        "5.5"
+      ],
+      [
+        "Free Fire",
+        "2026-10-26",
+        "22",
+        "172",
+        "12.8"
+      ]
+    ],
+    "row_count": 3,
+    "truncated": false,
+    "suggested_questions": [
+      "Quais jogos tiveram a maior taxa percentual de bug reports na semana passada?",
+      "Qual foi a nota média dos jogos com mais bug reports na semana passada?",
+      "Quais jogos ativos tiveram mais bug reports na semana passada?"
+    ],
+    "error": null
+  }
+}

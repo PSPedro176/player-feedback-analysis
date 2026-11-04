@@ -1,0 +1,28 @@
+{
+  "_endpoint": "GET /api/config",
+  "response": {
+    "host": "https://fevm-perdomo-demos.cloud.databricks.com",
+    "dashboard_id": "01f1d85bf7c31182b432ad8be51908b8",
+    "dashboard_embed_url": "https://fevm-perdomo-demos.cloud.databricks.com/embed/dashboardsv3/01f1d85bf7c31182b432ad8be51908b8",
+    "games": [
+      {
+        "name": "Candy Crush Saga",
+        "package": "com.king.candycrushsaga",
+        "icon": "/api/logo/com.king.candycrushsaga",
+        "accent": "#FF4D6D"
+      },
+      {
+        "name": "Clash Royale",
+        "package": "com.supercell.clashroyale",
+        "icon": "/api/logo/com.supercell.clashroyale",
+        "accent": "#4DD0FF"
+      },
+      {
+        "name": "Free Fire",
+        "package": "com.dts.freefireth",
+        "icon": "/api/logo/com.dts.freefireth",
+        "accent": "#FFB84D"
+      }
+    ]
+  }
+}

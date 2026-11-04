@@ -1,0 +1,23 @@
+{
+  "_endpoint": "GET /api/games",
+  "response": [
+    {
+      "name": "Candy Crush Saga",
+      "package": "com.king.candycrushsaga",
+      "icon": "/api/logo/com.king.candycrushsaga",
+      "accent": "#FF4D6D"
+    },
+    {
+      "name": "Clash Royale",
+      "package": "com.supercell.clashroyale",
+      "icon": "/api/logo/com.supercell.clashroyale",
+      "accent": "#4DD0FF"
+    },
+    {
+      "name": "Free Fire",
+      "package": "com.dts.freefireth",
+      "icon": "/api/logo/com.dts.freefireth",
+      "accent": "#FFB84D"
+    }
+  ]
+}
