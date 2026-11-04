@@ -141,6 +141,7 @@
           "- Responda no idioma da pergunta. Mostre taxas como percentual com 1 casa decimal.\n",
           "- Ordene rankings do maior para o menor e inclua `n_reviews` para dar contexto de volume.\n",
           "- Notas médias (`avg_score`) sempre com `round(avg_score, 2)`.\n",
+          "- Privacidade: NUNCA selecione `user_name` nem `review_id` (dados do autor). Para listar reviews, use game, language, score, sentiment, at e `substring(content, 1, 300) AS content`.\n",
           "- Se um jogo tiver menos de 300 reviews no período consultado, avise que o volume é baixo e que a comparação com os demais jogos é menos confiável.\n",
           "\n",
           "## Temas / Topics\n",
