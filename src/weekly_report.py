@@ -143,7 +143,7 @@ for game, aggregates in agg_rows.items():
         f"SELECT ai_query('{escaped_ai_model}', :prompt, failOnError => false) AS result",
         args={"prompt": prompt},
     ).collect()[0]["result"]
-    report_text = inference["response"]
+    report_text = inference["result"]
     error_message = inference["errorMessage"]
     inferred_at = datetime.utcnow()
 

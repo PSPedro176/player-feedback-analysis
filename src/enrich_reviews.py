@@ -119,7 +119,7 @@ def reviews_enrichment_inference():
         source
         .withColumn("_prompt_text", F.when(has_text, prompt_text))
         .withColumn("_ai_result", F.when(has_text, ai_result))
-        .withColumn("_raw_response", F.col("_ai_result.response"))
+        .withColumn("_raw_response", F.col("_ai_result.result"))
         .withColumn("_error_message", F.col("_ai_result.errorMessage"))
         .withColumn("_dims", F.from_json(F.col("_raw_response"), _DIMS_SCHEMA))
         .withColumn(
