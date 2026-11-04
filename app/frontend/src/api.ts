@@ -58,10 +58,41 @@ export interface GameInput {
   package: string;
 }
 
+export interface GenieSpace {
+  space_id: string;
+  title: string;
+  description: string;
+  url: string;
+  sample_questions: string[];
+}
+
+export interface GenieAnswer {
+  conversation_id: string;
+  message_id: string;
+  status: string;
+  done: boolean;
+  text: string;
+  sql: string | null;
+  query_description: string | null;
+  columns: string[];
+  rows: (string | null)[][];
+  row_count: number | null;
+  truncated: boolean;
+  suggested_questions: string[];
+  error: string | null;
+}
+
+async function failure(res: Response, path: string): Promise<Error> {
+  // Rotas do Genie devolvem {detail} com a causa — mostra na UI quando houver.
+  const body = await res.json().catch(() => null);
+  const detail = body && typeof body.detail === "string" ? `: ${body.detail}` : "";
+  return new Error(`Erro ${res.status} em ${path}${detail}`);
+}
+
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path);
   if (!res.ok) {
-    throw new Error(`Erro ${res.status} em ${path}`);
+    throw await failure(res, path);
   }
   return res.json();
 }
@@ -73,7 +104,7 @@ async function send<T>(path: string, method: string, body?: unknown): Promise<T>
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
-    throw new Error(`Erro ${res.status} em ${path}`);
+    throw await failure(res, path);
   }
   return res.json();
 }
@@ -88,4 +119,11 @@ export const api = {
   removeGame: (pkg: string) =>
     send<{ removed: string }>(`/api/games/${encodeURIComponent(pkg)}`, "DELETE"),
   runCollect: () => send<CollectRun>("/api/jobs/collect/run", "POST", {}),
+  genieSpace: () => get<GenieSpace>("/api/genie/space"),
+  genieAsk: (question: string, conversation_id?: string | null) =>
+    send<GenieAnswer>("/api/genie/ask", "POST", { question, conversation_id }),
+  geniePoll: (conversation_id: string, message_id: string) =>
+    get<GenieAnswer>(
+      `/api/genie/conversations/${encodeURIComponent(conversation_id)}/messages/${encodeURIComponent(message_id)}`,
+    ),
 };
