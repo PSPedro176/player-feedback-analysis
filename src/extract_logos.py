@@ -16,8 +16,8 @@ import os
 import requests
 from google_play_scraper import app as gp_app
 
-dbutils.widgets.text("catalog", "player_feedback_catalog")
-dbutils.widgets.text("schema", "player_feedback")
+dbutils.widgets.text("catalog", "perdomo_demos_catalog")
+dbutils.widgets.text("schema", "febar_player_feedback")
 
 catalog = dbutils.widgets.get("catalog")
 schema = dbutils.widgets.get("schema")
