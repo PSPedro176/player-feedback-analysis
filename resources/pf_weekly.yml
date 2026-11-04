@@ -6,7 +6,7 @@
 resources:
   jobs:
     pf_weekly_report:
-      name: pf_weekly_report
+      name: pf_febar_weekly_report
       schedule:
         quartz_cron_expression: ${var.report_cron}
         timezone_id: ${var.timezone}
@@ -38,3 +38,16 @@ resources:
             client: "3"
             dependencies:
               - google-play-scraper
+
+    # Execução manual: exporta evidências técnicas e funcionais para UC Volume.
+    pf_export_evidence:
+      name: pf_febar_export_evidence
+      tasks:
+        - task_key: export_evidence
+          notebook_task:
+            notebook_path: ../src/export_evidence.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              pipeline_id: ${resources.pipelines.pf_enrichment.id}
+              job_ids: '{"pf_febar_setup":"${resources.jobs.pf_setup.id}","pf_febar_ingest_and_enrich":"${resources.jobs.pf_ingest_and_enrich.id}","pf_febar_weekly_report":"${resources.jobs.pf_weekly_report.id}","pf_febar_export_evidence":"{{job.id}}"}'

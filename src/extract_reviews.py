@@ -34,8 +34,8 @@ from pyspark.sql.types import (
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog", "player_feedback_catalog")
-dbutils.widgets.text("schema", "player_feedback")
+dbutils.widgets.text("catalog", "perdomo_demos_catalog")
+dbutils.widgets.text("schema", "febar_player_feedback")
 dbutils.widgets.text("languages", '["pt", "en", "es"]')
 dbutils.widgets.text("country", "br")
 dbutils.widgets.text("page_count", "200")

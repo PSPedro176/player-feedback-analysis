@@ -6,24 +6,18 @@
 # Tudo provisionado via Databricks Asset Bundles.
 # =============================================================================
 bundle:
-  name: player_feedback
-  # Faixa CAPADA na linha 1.14.x — a única validada. Histórico: em v1.13.0,
-  # ${resources.dashboards.pf_dashboard.id} resolvia; a partir de v1.14.1 os
-  # dashboards só expõem .dashboard_id (usado nos resources) e o .id resolveria
-  # vazio, quebrando o deploy. Patches 1.14.x (bugfixes) são permitidos, mas
-  # 1.15+ é rejeitado de propósito: uma futura mudança de comportamento de
-  # substituição (como .id -> .dashboard_id) falha cedo com mensagem clara de
-  # versão, em vez de ser adotada silenciosamente e re-quebrar o deploy. Suba o
-  # teto só depois de validar conscientemente uma CLI mais nova.
-  databricks_cli_version: ">= 1.14.1, < 1.15.0"
+  name: febar_player_feedback
+  # O bundle foi validado com a linha 1.22.x da CLI; o teto evita adotar uma
+  # mudança de comportamento de uma próxima minor sem validação explícita.
+  databricks_cli_version: ">= 1.22.0, < 1.23.0"
 
 variables:
   catalog:
     description: Catálogo Unity Catalog da demo (pré-provisionado no seu workspace)
-    default: player_feedback_catalog
+    default: perdomo_demos_catalog
   schema:
     description: Schema onde vivem as tabelas da demo
-    default: player_feedback
+    default: febar_player_feedback
 
   # --- AI ---
   ai_model:
@@ -83,6 +77,6 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://<SEU_WORKSPACE>.cloud.databricks.com
+      host: https://fevm-perdomo-demos.cloud.databricks.com
     run_as:
-      user_name: <seu.email@empresa.com>
+      user_name: pedro.perdomo@databricks.com
