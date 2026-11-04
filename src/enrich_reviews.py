@@ -135,6 +135,7 @@ def ai_inference_log_enrichment():
         spark.readStream.table(
             f"`{CATALOG}`.`{SCHEMA}`.reviews_enrichment_inference"
         )
+        .where(F.col("_prompt_text").isNotNull())
         .select(
             "review_id",
             "game",
