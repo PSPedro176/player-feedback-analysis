@@ -10,7 +10,7 @@ resources:
     # os grants de UC ao service principal do App. Execução manual:
     #   databricks bundle run pf_setup -t dev -p <profile>
     pf_setup:
-      name: pf_setup
+      name: pf_febar_setup
       tasks:
         - task_key: setup
           notebook_task:
@@ -18,10 +18,10 @@ resources:
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
-              app_name: player-feedback-analysis
+              app_name: febar-player-feedback
               dashboard_id: ${resources.dashboards.pf_dashboard.dashboard_id}
               warehouse_id: ${resources.sql_warehouses.pf_warehouse.id}
-              pg_project: pf-games
+              pg_project: febar-pf-games
               pg_branch: production
               pg_database: databricks_postgres
 
@@ -29,7 +29,7 @@ resources:
     # enriquecimento. Ao final, se houver jogo novo (sem relatório ainda), dispara
     # o pf_weekly_report, que gera o relatório e coleta os logos.
     pf_ingest_and_enrich:
-      name: pf_ingest_and_enrich
+      name: pf_febar_ingest_and_enrich
       schedule:
         quartz_cron_expression: ${var.extract_cron}
         timezone_id: ${var.timezone}
@@ -66,14 +66,14 @@ resources:
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
-              app_name: player-feedback-analysis
+              app_name: febar-player-feedback
               refresh_views_only: "true"
 
         # Porta condicional: só segue se a task extract sinalizou jogos novos
         # (games_current sem relatório em weekly_reports) via taskValue new_games.
         - task_key: has_new_games
           depends_on:
-            - task_key: refresh_governed_views
+            - task_key: enrich
           condition_task:
             left: "{{tasks.extract.values.new_games}}"
             op: "GREATER_THAN"
@@ -99,7 +99,7 @@ resources:
     # SDP — enriquecimento incremental: lê reviews_raw como stream e aplica AI
     # functions (7 dimensões + sentimento). Faz parte do fluxo diário (task enrich).
     pf_enrichment:
-      name: pf_enrichment
+      name: pf_febar_enrichment
       serverless: true
       catalog: ${var.catalog}
       schema: ${var.schema}

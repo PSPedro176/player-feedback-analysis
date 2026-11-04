@@ -29,6 +29,7 @@ PROMPT_VERSION = "weekly_report_v1"
 
 # COMMAND ----------
 
+import re
 from datetime import date, datetime, timedelta
 from pyspark.sql import functions as F
 from pyspark.sql.types import (
@@ -41,6 +42,10 @@ from pyspark.sql.types import (
     StructType,
     TimestampType,
 )
+
+if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,254}", ai_model):
+    raise ValueError("ai_model contém caracteres inválidos para um endpoint")
+escaped_ai_model = ai_model.replace("'", "''")
 
 # Segunda-feira da semana atual (ISO) como chave idempotente do relatório.
 today = date.today()
@@ -135,8 +140,8 @@ for game, aggregates in agg_rows.items():
     )
 
     inference = spark.sql(
-        "SELECT ai_query(:model, :prompt, failOnError => false) AS result",
-        args={"model": ai_model, "prompt": prompt},
+        f"SELECT ai_query('{escaped_ai_model}', :prompt, failOnError => false) AS result",
+        args={"prompt": prompt},
     ).collect()[0]["result"]
     report_text = inference["response"]
     error_message = inference["errorMessage"]
@@ -154,6 +159,12 @@ for game, aggregates in agg_rows.items():
         "error_message": error_message,
         "inferred_at": inferred_at,
     })
+
+    if error_message is not None or report_text is None:
+        print(
+            f"  {game:14s} → inferência falhou; auditoria gravada e relatório anterior preservado"
+        )
+        continue
 
     grade = grade_of(
         aggregates["avg_score"], aggregates["bug_rate"], aggregates["neg_rate"]
@@ -186,10 +197,6 @@ for game, aggregates in agg_rows.items():
 
 # COMMAND ----------
 
-if not out_rows:
-    print("Nenhum jogo com reviews na janela. Nada a gravar.")
-    dbutils.notebook.exit("sem dados")
-
 audit_schema = StructType([
     StructField("report_week", DateType()),
     StructField("game", StringType()),
@@ -202,9 +209,14 @@ audit_schema = StructType([
     StructField("error_message", StringType()),
     StructField("inferred_at", TimestampType()),
 ])
-spark.createDataFrame(audit_rows, schema=audit_schema).write.mode("append").saveAsTable(
-    audit_reports
-)
+if audit_rows:
+    spark.createDataFrame(audit_rows, schema=audit_schema).write.mode("append").saveAsTable(
+        audit_reports
+    )
+
+if not out_rows:
+    print("Nenhum relatório novo válido; auditoria registrada e dados existentes preservados.")
+    dbutils.notebook.exit("sem relatórios válidos")
 
 report_schema = StructType([
     StructField("report_week", DateType()),

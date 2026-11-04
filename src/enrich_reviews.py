@@ -6,6 +6,14 @@
 # ---------------------------------------------------------------------------
 import dlt
 from pyspark.sql import functions as F
+from pyspark.sql.types import (
+    BooleanType,
+    IntegerType,
+    StringType,
+    StructField,
+    StructType,
+    TimestampType,
+)
 
 CATALOG = spark.conf.get("pf.catalog")
 SCHEMA = spark.conf.get("pf.schema")
@@ -44,6 +52,49 @@ _PROMPT_TEMPLATE = (
 _ESCAPED_MODEL = AI_MODEL.replace("'", "''")
 _ESCAPED_RESPONSE_FORMAT = _RESPONSE_FORMAT.replace("'", "''")
 _DIMS_SCHEMA = "struct<" + ",".join(f"{dimension}:boolean" for dimension in DIMENSIONS) + ">"
+
+
+def commented_field(name, data_type, comment):
+    return StructField(name, data_type, True, {"comment": comment})
+
+
+REVIEWS_ENRICHED_SCHEMA = StructType([
+    commented_field("review_id", StringType(), "Identificador único do review na Play Store."),
+    commented_field("game", StringType(), "Nome canônico do jogo cadastrado."),
+    commented_field("package_name", StringType(), "Package name do jogo na Play Store."),
+    commented_field("language", StringType(), "Idioma usado na coleta do review."),
+    commented_field("user_name", StringType(), "Nome público do autor na Play Store."),
+    commented_field("content", StringType(), "Texto público do review usado na classificação."),
+    commented_field("score", IntegerType(), "Nota de 1 a 5 atribuída pelo jogador."),
+    commented_field("thumbs_up_count", IntegerType(), "Quantidade de votos úteis do review."),
+    commented_field("review_created_version", StringType(), "Versão do jogo informada no review."),
+    commented_field("at", TimestampType(), "Data e hora de publicação; base das semanas ISO."),
+    commented_field("reply_content", StringType(), "Resposta pública do desenvolvedor."),
+    commented_field("replied_at", TimestampType(), "Data e hora da resposta do desenvolvedor."),
+    commented_field("app_version", StringType(), "Versão atual do aplicativo observada na coleta."),
+    commented_field("_ingested_at", TimestampType(), "Momento em que o review foi ingerido."),
+    commented_field("sentiment", StringType(), "Sentimento inferido: positive, negative, neutral ou mixed."),
+    commented_field("bug_report", BooleanType(), "Indica menção a crash, erro ou problema técnico."),
+    commented_field("pricing", BooleanType(), "Indica feedback sobre preço, compra, reembolso ou monetização."),
+    commented_field("game_balance", BooleanType(), "Indica feedback sobre dificuldade, justiça, matchmaking ou pay-to-win."),
+    commented_field("opinion", BooleanType(), "Indica opinião geral sem tema específico predominante."),
+    commented_field("community", BooleanType(), "Indica feedback sobre jogadores, chat, times ou recursos sociais."),
+    commented_field("toxicity", BooleanType(), "Indica linguagem ofensiva, abusiva ou de ódio."),
+    commented_field("visuals", BooleanType(), "Indica feedback sobre gráficos, arte, UI ou animações."),
+    commented_field("_enriched_at", TimestampType(), "Momento em que a inferência foi materializada."),
+])
+
+AI_LOG_SCHEMA = StructType([
+    commented_field("review_id", StringType(), "Identificador do review associado à chamada."),
+    commented_field("game", StringType(), "Jogo associado à chamada."),
+    commented_field("source", StringType(), "Origem fixa enrichment."),
+    commented_field("model", StringType(), "Serving endpoint usado pelo ai_query."),
+    commented_field("prompt_version", StringType(), "Versão controlada do template de prompt."),
+    commented_field("prompt_text", StringType(), "Prompt completo enviado ao modelo."),
+    commented_field("raw_response", StringType(), "Resposta bruta retornada pelo modelo."),
+    commented_field("error_message", StringType(), "Erro retornado com failOnError=false."),
+    commented_field("inferred_at", TimestampType(), "Momento da chamada ao modelo."),
+])
 
 
 @dlt.table(
@@ -85,7 +136,7 @@ _REVIEW_EXPECTATIONS = {
     "review_id_not_null": "review_id IS NOT NULL",
     "review_text_not_blank": "content IS NOT NULL AND length(trim(content)) > 0",
     "score_between_1_and_5": "score BETWEEN 1 AND 5",
-    "valid_sentiment": "lower(sentiment) IN ('positive', 'negative', 'neutral', 'mixed')",
+    "valid_sentiment": "sentiment IS NULL OR lower(sentiment) IN ('positive', 'negative', 'neutral', 'mixed')",
 }
 
 
@@ -95,6 +146,7 @@ _REVIEW_EXPECTATIONS = {
         "Silver: reviews da Play Store enriquecidos por AI com sentimento e sete "
         "rótulos temáticos booleanos."
     ),
+    schema=REVIEWS_ENRICHED_SCHEMA,
     table_properties={"quality": "silver"},
 )
 @dlt.expect_all(_REVIEW_EXPECTATIONS)
@@ -128,6 +180,7 @@ def reviews_enriched():
         "Audit trail governado das chamadas ai_query de classificação de reviews, "
         "incluindo prompt, resposta bruta e mensagem de erro."
     ),
+    schema=AI_LOG_SCHEMA,
     table_properties={"quality": "silver"},
 )
 def ai_inference_log_enrichment():

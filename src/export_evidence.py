@@ -10,10 +10,7 @@
 dbutils.widgets.text("catalog", "perdomo_demos_catalog")
 dbutils.widgets.text("schema", "febar_player_feedback")
 dbutils.widgets.text("pipeline_id", "")
-dbutils.widgets.text(
-    "job_names",
-    '["pf_setup", "pf_ingest_and_enrich", "pf_weekly_report", "pf_export_evidence"]',
-)
+dbutils.widgets.text("job_ids", "{}")
 
 catalog = dbutils.widgets.get("catalog")
 schema = dbutils.widgets.get("schema")
@@ -26,11 +23,12 @@ import json
 import os
 from datetime import date, datetime
 from decimal import Decimal
+from itertools import islice
 
 from databricks.sdk import WorkspaceClient
 
 w = WorkspaceClient()
-job_names = json.loads(dbutils.widgets.get("job_names"))
+job_ids = json.loads(dbutils.widgets.get("job_ids"))
 run_ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
 evidence_dir = f"/Volumes/{catalog}/{schema}/evidence/{run_ts}"
 os.makedirs(evidence_dir, exist_ok=True)
@@ -135,7 +133,7 @@ write_dataset("classification_distribution", classification_distribution)
 sample_reviews = rows_from_df(spark.sql(f"""
     WITH ranked AS (
         SELECT
-            review_id,
+            sha2(review_id, 256) AS review_id_hash,
             game,
             at,
             score,
@@ -152,7 +150,7 @@ sample_reviews = rows_from_df(spark.sql(f"""
         FROM `{catalog}`.`{schema}`.reviews_enriched
         WHERE content IS NOT NULL
     )
-    SELECT review_id, game, at, score, sentiment,
+    SELECT review_id_hash, game, at, score, sentiment,
            bug_report, pricing, game_balance, toxicity, visuals, community, opinion,
            review_text
     FROM ranked
@@ -221,7 +219,7 @@ ai_stats = rows_from_df(spark.sql(f"""
 write_dataset("ai_inference_stats", ai_stats)
 
 ai_samples = rows_from_df(spark.sql(f"""
-    SELECT source, game, record_key, model, prompt_version,
+    SELECT source, game, sha2(record_key, 256) AS record_key_hash, model, prompt_version,
            substring(raw_response, 1, 1000) AS raw_response,
            error_message, inferred_at
     FROM `{catalog}`.`{schema}`.ai_inference_log
@@ -236,37 +234,26 @@ write_dataset("ai_inference_samples", ai_samples)
 
 # COMMAND ----------
 
-workspace_jobs = list(w.jobs.list(expand_tasks=False))
 job_runs = []
-for expected_name in job_names:
-    matching_jobs = [
-        job for job in workspace_jobs
-        if job.settings
-        and job.settings.name
-        and (
-            job.settings.name == expected_name
-            or job.settings.name.endswith(expected_name)
-        )
-    ]
-    if not matching_jobs:
+for job_name, job_id in job_ids.items():
+    if not job_id:
         job_runs.append({
-            "job_name": expected_name,
+            "job_name": job_name,
             "job_id": None,
             "run_id": None,
-            "state": "JOB_NOT_FOUND",
+            "state": "JOB_ID_NOT_SUPPLIED",
             "duration_ms": None,
         })
         continue
 
-    job = matching_jobs[0]
-    for run in w.jobs.list_runs(job_id=job.job_id, limit=10):
+    runs = w.jobs.list_runs(job_id=int(job_id), limit=10)
+    for run in islice(runs, 10):
         duration_ms = run.execution_duration
         if duration_ms is None and run.start_time and run.end_time:
             duration_ms = run.end_time - run.start_time
         job_runs.append({
-            "job_name": expected_name,
-            "workspace_job_name": job.settings.name,
-            "job_id": job.job_id,
+            "job_name": job_name,
+            "job_id": int(job_id),
             "run_id": run.run_id,
             "run_name": run.run_name,
             "state": enum_value(run.state.life_cycle_state) if run.state else None,

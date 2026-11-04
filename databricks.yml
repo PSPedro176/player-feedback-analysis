@@ -7,9 +7,9 @@
 # =============================================================================
 bundle:
   name: febar_player_feedback
-  # O bundle usa campos de recursos e sintaxe validados com a CLI 1.22.x.
-  # Mantemos apenas o piso para aceitar patches e versões posteriores compatíveis.
-  databricks_cli_version: ">= 1.22.0"
+  # O bundle foi validado com a linha 1.22.x da CLI; o teto evita adotar uma
+  # mudança de comportamento de uma próxima minor sem validação explícita.
+  databricks_cli_version: ">= 1.22.0, < 1.23.0"
 
 variables:
   catalog:

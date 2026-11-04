@@ -20,14 +20,14 @@
 
 dbutils.widgets.text("catalog", "perdomo_demos_catalog")
 dbutils.widgets.text("schema", "febar_player_feedback")
-dbutils.widgets.text("app_name", "player-feedback-analysis")
+dbutils.widgets.text("app_name", "febar-player-feedback")
 dbutils.widgets.text("dashboard_id", "")
 dbutils.widgets.text("warehouse_id", "")
 dbutils.widgets.text("refresh_views_only", "false")
 # Lakebase Autoscaling — só o project_id é escolhido; branch (`production`), database
 # (`databricks_postgres`) e endpoint são AUTO-CRIADOS ao criar o projeto (o endpoint tem
 # id auto-gerado e é descoberto via list_endpoints).
-dbutils.widgets.text("pg_project", "pf-games")
+dbutils.widgets.text("pg_project", "febar-pf-games")
 dbutils.widgets.text("pg_branch", "production")
 dbutils.widgets.text("pg_database", "databricks_postgres")
 
@@ -167,26 +167,6 @@ if "reviews_enriched" in available_objects:
     reviews_enriched = f"`{catalog}`.`{schema}`.reviews_enriched"
     weekly_summary = f"`{catalog}`.`{schema}`.weekly_game_summary"
 
-    spark.sql(
-        f"COMMENT ON TABLE {reviews_enriched} IS "
-        "'Silver governada: reviews com sentimento e rótulos temáticos inferidos por AI.'"
-    )
-    set_column_comments(reviews_enriched, {
-        "review_id": "Identificador único do review na Play Store.",
-        "game": "Nome canônico do jogo cadastrado.",
-        "content": "Texto público do review usado na classificação.",
-        "score": "Nota de 1 a 5 atribuída pelo jogador.",
-        "at": "Data e hora de publicação do review; base das semanas ISO.",
-        "sentiment": "Sentimento inferido: positive, negative, neutral ou mixed.",
-        "bug_report": "Indica menção a crash, erro ou problema técnico.",
-        "pricing": "Indica feedback sobre preço, compra, reembolso ou monetização.",
-        "game_balance": "Indica feedback sobre dificuldade, justiça, matchmaking ou pay-to-win.",
-        "toxicity": "Indica linguagem ofensiva, abusiva ou de ódio.",
-        "visuals": "Indica feedback sobre gráficos, arte, UI ou animações.",
-        "community": "Indica feedback sobre jogadores, chat, times ou recursos sociais.",
-        "opinion": "Indica opinião geral sem tema específico predominante.",
-    })
-
     spark.sql(f"""
         CREATE OR REPLACE VIEW {weekly_summary} (
             game COMMENT 'Nome canônico do jogo.',
@@ -318,7 +298,6 @@ for statement in [
     f"GRANT USE CATALOG ON CATALOG `{catalog}` TO `{sp}`",
     f"GRANT USE SCHEMA, SELECT ON SCHEMA `{catalog}`.`{schema}` TO `{sp}`",
     f"GRANT READ VOLUME ON VOLUME `{catalog}`.`{schema}`.`{VOLUME}` TO `{sp}`",
-    f"GRANT READ VOLUME ON VOLUME `{catalog}`.`{schema}`.`{EVIDENCE_VOLUME}` TO `{sp}`",
 ]:
     spark.sql(statement)
 print(f"Views/comentários/grants governados atualizados para o SP do App ({sp}).")
@@ -426,10 +405,22 @@ print("Tabela public.games pronta (REPLICA IDENTITY FULL + grants Postgres).")
 
 # COMMAND ----------
 
-# Idempotente: só cria se ainda não existe uma config para esta database. Falha alto em erro real.
+# Idempotente por destino: outra config na mesma database não satisfaz este bundle.
+def cdf_destination(config):
+    spec = getattr(config, "spec", None)
+    return (
+        getattr(config, "catalog", None) or getattr(spec, "catalog", None),
+        getattr(config, "schema", None) or getattr(spec, "schema", None),
+    )
+
+
 existing_cdf = list(w.postgres.list_cdf_configs(parent=db_path))
-if existing_cdf:
-    print(f"CDF config já existe ({len(existing_cdf)}).")
+target_cdf = [
+    config for config in existing_cdf
+    if cdf_destination(config) == (catalog, schema)
+]
+if target_cdf:
+    print(f"CDF config do destino {catalog}.{schema} já existe ({len(target_cdf)}).")
 else:
     w.postgres.create_cdf_config(
         parent=db_path,
@@ -465,22 +456,6 @@ else:
         "lb_games_history ainda não existe (CDF materializando). Adicione um jogo pelo App e "
         "re-rode o pf_setup em instantes para criar a view games_current."
     )
-
-# COMMAND ----------
-
-# MAGIC %md ## Grants de UC ao service principal do App
-
-# COMMAND ----------
-
-# GRANT é idempotente; sp já resolvido acima. Falha alto se algo der errado.
-for stmt in [
-    f"GRANT USE CATALOG ON CATALOG `{catalog}` TO `{sp}`",
-    f"GRANT USE SCHEMA, SELECT ON SCHEMA `{catalog}`.`{schema}` TO `{sp}`",
-    f"GRANT READ VOLUME ON VOLUME `{catalog}`.`{schema}`.`{VOLUME}` TO `{sp}`",
-    f"GRANT READ VOLUME ON VOLUME `{catalog}`.`{schema}`.`{EVIDENCE_VOLUME}` TO `{sp}`",
-]:
-    spark.sql(stmt)
-print(f"Grants de UC aplicados ao SP do App ({sp}).")
 
 # COMMAND ----------
 
