@@ -1,0 +1,28 @@
+# ---------------------------------------------------------------------------
+# Genie space dedicado (como código):
+# - Definição versionada em src/genie/player_feedback.geniespace.json (tabelas
+#   governadas, instruções PT-BR/EN, perguntas de exemplo e SQLs confiáveis).
+# - Aplicada pelo job pf_genie_setup (src/setup_genie.py), idempotente: acha o
+#   space pelo título e atualiza, ou cria; concede CAN_RUN ao SP do App.
+#
+# Não usamos o recurso nativo `genie_spaces` do bundle porque a API do Genie
+# valida na criação que as tabelas existem — e elas só existem depois do
+# pf_setup + primeira execução do pipeline. Ordem de execução:
+#   bundle deploy → pf_setup → pf_ingest_and_enrich → pf_genie_setup → pf_app
+#   databricks bundle run pf_genie_setup -t dev -p <profile>
+# ---------------------------------------------------------------------------
+resources:
+  jobs:
+    pf_genie_setup:
+      name: pf_genie_setup
+      tasks:
+        - task_key: setup_genie
+          notebook_task:
+            notebook_path: ../src/setup_genie.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              warehouse_id: ${resources.sql_warehouses.pf_warehouse.id}
+              app_name: ${resources.apps.pf_app.name}
+              space_title: "Player Feedback — Genie"
+              definition_path: ${workspace.file_path}/src/genie/player_feedback.geniespace.json

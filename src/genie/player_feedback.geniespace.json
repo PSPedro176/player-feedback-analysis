@@ -1,0 +1,262 @@
+{
+  "version": 2,
+  "config": {
+    "sample_questions": [
+      {
+        "id": "a1000000000000000000000000000001",
+        "question": [
+          "Quais jogos tiveram mais bug reports na semana passada?"
+        ]
+      },
+      {
+        "id": "a1000000000000000000000000000002",
+        "question": [
+          "Como evoluiu o sentimento negativo de cada jogo nas últimas 4 semanas?"
+        ]
+      },
+      {
+        "id": "a1000000000000000000000000000003",
+        "question": [
+          "Qual a nota do último relatório semanal de cada jogo?"
+        ]
+      },
+      {
+        "id": "a1000000000000000000000000000004",
+        "question": [
+          "Qual a taxa de erro das chamadas de IA por modelo?"
+        ]
+      },
+      {
+        "id": "a1000000000000000000000000000005",
+        "question": [
+          "Qual a distribuição de sentimento por jogo?"
+        ]
+      },
+      {
+        "id": "a1000000000000000000000000000006",
+        "question": [
+          "Qual jogo teve a maior taxa de toxicidade na semana passada?"
+        ]
+      },
+      {
+        "id": "a1000000000000000000000000000007",
+        "question": [
+          "Quais são os temas mais citados nos reviews negativos de cada jogo?"
+        ]
+      },
+      {
+        "id": "a1000000000000000000000000000008",
+        "question": [
+          "Mostre os 10 reviews mais recentes com bug report"
+        ]
+      },
+      {
+        "id": "a1000000000000000000000000000009",
+        "question": [
+          "Which game had the lowest average score last week?"
+        ]
+      },
+      {
+        "id": "a100000000000000000000000000000a",
+        "question": [
+          "Quais jogos estão sendo monitorados atualmente?"
+        ]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      {
+        "identifier": "__CATALOG__.__SCHEMA__.ai_inference_log",
+        "description": [
+          "Trilha de auditoria das chamadas ai_query (enriquecimento e relatórios semanais): modelo, versão do prompt, resposta bruta e erro. Use para qualidade/erro das chamadas de IA."
+        ]
+      },
+      {
+        "identifier": "__CATALOG__.__SCHEMA__.games_current",
+        "description": [
+          "Jogos atualmente monitorados (cadastro feito no App, replicado do Lakebase via CDF). Use para listar jogos ativos."
+        ]
+      },
+      {
+        "identifier": "__CATALOG__.__SCHEMA__.reviews_enriched",
+        "description": [
+          "Um registro por review da Google Play Store, enriquecido por AI Functions: sentimento + 7 rótulos booleanos. Use para perguntas no nível de review (textos, exemplos, idioma, versão do app)."
+        ]
+      },
+      {
+        "identifier": "__CATALOG__.__SCHEMA__.weekly_game_summary",
+        "description": [
+          "Agregado por jogo e semana ISO de calendário (segunda a domingo). FONTE PREFERIDA para contagens e taxas semanais."
+        ]
+      },
+      {
+        "identifier": "__CATALOG__.__SCHEMA__.weekly_reports",
+        "description": [
+          "Relatório textual gerado por IA por jogo e semana (report_week = segunda-feira), com semáforo grade green/yellow/red e taxas da janela móvel."
+        ]
+      }
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "id": "b1000000000000000000000000000001",
+        "content": [
+          "# Player Feedback — instruções do Genie (PT-BR / EN)\n",
+          "\n",
+          "## Domínio / Domain\n",
+          "- Dados de reviews de jogos mobile coletados da Google Play Store e enriquecidos com Databricks AI Functions. / Mobile game reviews from Google Play, enriched with Databricks AI Functions.\n",
+          "- \"jogo\" / \"game\" = coluna `game` (nome canônico cadastrado no App). Compare nomes de jogo sem diferenciar maiúsculas: `lower(game) LIKE lower('%<nome>%')`.\n",
+          "- \"review\", \"comentário\", \"avaliação\" = uma linha de `reviews_enriched`. \"nota\" / \"score\" / \"rating\" = coluna `score` (1 a 5).\n",
+          "\n",
+          "## Sentimento / Sentiment\n",
+          "- `sentiment` (em `reviews_enriched`) assume apenas: 'positive', 'negative', 'neutral', 'mixed' (minúsculas; use `lower(sentiment)`). NULL = review sem texto.\n",
+          "- \"sentimento negativo\" / \"negative sentiment\" = 'negative'. \"taxa de negativos\" / \"negative rate\" = `negative_rate` em `weekly_game_summary` (fração 0-1; multiplique por 100 para %).\n",
+          "\n",
+          "## Rótulos temáticos / Topic labels (booleanos em reviews_enriched)\n",
+          "- `bug_report`: crash, erro, travamento, problema técnico (bug / crash / lag). \"bug reports\" = reviews com bug_report = true.\n",
+          "- `pricing`: preço, compras, reembolso, monetização (price / IAP / refund).\n",
+          "- `game_balance`: dificuldade, justiça, matchmaking, pay-to-win.\n",
+          "- `opinion`: opinião geral sem tema específico.\n",
+          "- `community`: jogadores, chat, times, recursos sociais.\n",
+          "- `toxicity`: linguagem ofensiva, abusiva ou de ódio.\n",
+          "- `visuals`: gráficos, arte, UI, animações.\n",
+          "- Um review pode ter vários rótulos ao mesmo tempo. Trate NULL como false.\n",
+          "\n",
+          "## Semanas / Weeks\n",
+          "- Semanas são ISO (segunda a domingo). `weekly_game_summary.week_start` é a segunda-feira; `week_end` o domingo.\n",
+          "- \"semana passada\" / \"last week\" = a última semana COMPLETA: `week_start = date_sub(CAST(date_trunc('WEEK', current_date()) AS DATE), 7)`.\n",
+          "- \"esta semana\" / \"this week\" = `week_start = CAST(date_trunc('WEEK', current_date()) AS DATE)` (semana parcial — avise o usuário).\n",
+          "- \"últimas N semanas\" / \"last N weeks\" = as N últimas semanas completas: `week_start >= date_sub(CAST(date_trunc('WEEK', current_date()) AS DATE), 7*N) AND week_start < CAST(date_trunc('WEEK', current_date()) AS DATE)`.\n",
+          "\n",
+          "## Qual tabela usar / Which table\n",
+          "- Contagens e taxas por semana (reviews, sentimento, bug reports, toxicidade, nota média): PREFIRA `weekly_game_summary`; não reagregue `reviews_enriched` quando a view já responde.\n",
+          "- Textos e exemplos de reviews, idioma, versão do app, filtros por data exata: `reviews_enriched` (data do review = coluna `at`).\n",
+          "- Relatório semanal, \"nota/grade/semáforo do relatório\", resumo textual: `weekly_reports`. `grade` = 'green' (saudável), 'yellow' (atenção), 'red' (crítico). \"último relatório\" = maior `report_week` por jogo. As taxas de `weekly_reports` são da janela móvel do relatório, não da semana ISO.\n",
+          "- Jogos monitorados atualmente: `games_current` (filtre `active = true`).\n",
+          "- Erros / qualidade das chamadas de IA: `ai_inference_log`. Uma chamada falhou quando `error_message IS NOT NULL`. `source` = etapa (enrichment ou weekly_report); `model` = endpoint; `prompt_version` = versão do prompt.\n",
+          "\n",
+          "## Estilo de resposta / Answer style\n",
+          "- Responda no idioma da pergunta. Mostre taxas como percentual com 1 casa decimal.\n",
+          "- Ordene rankings do maior para o menor e inclua `n_reviews` para dar contexto de volume."
+        ]
+      }
+    ],
+    "example_question_sqls": [
+      {
+        "id": "c1000000000000000000000000000001",
+        "question": [
+          "Quais jogos tiveram mais bug reports na semana passada?"
+        ],
+        "sql": [
+          "SELECT\n",
+          "  game,\n",
+          "  week_start,\n",
+          "  n_bug_reports,\n",
+          "  n_reviews,\n",
+          "  round(bug_report_rate * 100, 1) AS bug_report_pct\n",
+          "FROM __CATALOG__.__SCHEMA__.weekly_game_summary\n",
+          "WHERE week_start = date_sub(CAST(date_trunc('WEEK', current_date()) AS DATE), 7)\n",
+          "ORDER BY n_bug_reports DESC"
+        ]
+      },
+      {
+        "id": "c1000000000000000000000000000002",
+        "question": [
+          "Como evoluiu o sentimento negativo de cada jogo nas últimas 4 semanas?"
+        ],
+        "sql": [
+          "SELECT\n",
+          "  game,\n",
+          "  week_start,\n",
+          "  n_negative,\n",
+          "  n_reviews,\n",
+          "  round(negative_rate * 100, 1) AS negative_pct\n",
+          "FROM __CATALOG__.__SCHEMA__.weekly_game_summary\n",
+          "WHERE week_start >= date_sub(CAST(date_trunc('WEEK', current_date()) AS DATE), 28)\n",
+          "  AND week_start < CAST(date_trunc('WEEK', current_date()) AS DATE)\n",
+          "ORDER BY game, week_start"
+        ]
+      },
+      {
+        "id": "c1000000000000000000000000000003",
+        "question": [
+          "Qual a nota do último relatório semanal de cada jogo?"
+        ],
+        "sql": [
+          "SELECT\n",
+          "  game,\n",
+          "  report_week,\n",
+          "  grade,\n",
+          "  round(avg_score, 2) AS avg_score,\n",
+          "  n_reviews,\n",
+          "  round(bug_report_rate * 100, 1) AS bug_report_pct,\n",
+          "  round(negative_rate * 100, 1) AS negative_pct\n",
+          "FROM __CATALOG__.__SCHEMA__.weekly_reports\n",
+          "QUALIFY row_number() OVER (PARTITION BY game ORDER BY report_week DESC) = 1\n",
+          "ORDER BY game"
+        ]
+      },
+      {
+        "id": "c1000000000000000000000000000004",
+        "question": [
+          "Qual a taxa de erro das chamadas de IA por modelo?"
+        ],
+        "sql": [
+          "SELECT\n",
+          "  model,\n",
+          "  source,\n",
+          "  count(*) AS n_calls,\n",
+          "  count_if(error_message IS NOT NULL) AS n_errors,\n",
+          "  round(100.0 * count_if(error_message IS NOT NULL) / count(*), 2) AS error_pct\n",
+          "FROM __CATALOG__.__SCHEMA__.ai_inference_log\n",
+          "GROUP BY model, source\n",
+          "ORDER BY error_pct DESC"
+        ]
+      },
+      {
+        "id": "c1000000000000000000000000000005",
+        "question": [
+          "Qual a distribuição de sentimento por jogo?"
+        ],
+        "sql": [
+          "SELECT\n",
+          "  game,\n",
+          "  lower(sentiment) AS sentiment,\n",
+          "  count(*) AS n_reviews,\n",
+          "  round(100.0 * count(*) / sum(count(*)) OVER (PARTITION BY game), 1) AS pct\n",
+          "FROM __CATALOG__.__SCHEMA__.reviews_enriched\n",
+          "WHERE sentiment IS NOT NULL\n",
+          "GROUP BY game, lower(sentiment)\n",
+          "ORDER BY game, n_reviews DESC"
+        ]
+      },
+      {
+        "id": "c1000000000000000000000000000006",
+        "question": [
+          "Quais são os temas mais citados nos reviews negativos de cada jogo?"
+        ],
+        "sql": [
+          "SELECT game, topic, n_reviews\n",
+          "FROM (\n",
+          "  SELECT\n",
+          "    game,\n",
+          "    count_if(bug_report) AS bug_report,\n",
+          "    count_if(pricing) AS pricing,\n",
+          "    count_if(game_balance) AS game_balance,\n",
+          "    count_if(opinion) AS opinion,\n",
+          "    count_if(community) AS community,\n",
+          "    count_if(toxicity) AS toxicity,\n",
+          "    count_if(visuals) AS visuals\n",
+          "  FROM __CATALOG__.__SCHEMA__.reviews_enriched\n",
+          "  WHERE lower(sentiment) = 'negative'\n",
+          "  GROUP BY game\n",
+          ")\n",
+          "UNPIVOT (n_reviews FOR topic IN (bug_report, pricing, game_balance, opinion, community, toxicity, visuals))\n",
+          "ORDER BY game, n_reviews DESC"
+        ]
+      }
+    ]
+  }
+}
