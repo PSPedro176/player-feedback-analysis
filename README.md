@@ -176,6 +176,8 @@ sugestões de follow-up.
 
 ## 6. Evidências de execução
 
+Decisões de construção, trade-offs e papel da IA: [`docs/BUILD_DECISIONS.md`](docs/BUILD_DECISIONS.md).
+
 Execução ponta a ponta de 2026-11-04 no workspace `fevm-perdomo-demos` (bundle `febar_player_feedback`,
 target `dev`): 3 jogos (Free Fire, Clash Royale, Candy Crush Saga), 9.014 reviews classificados (0 erros
 de IA), 3 relatórios semanais, Genie space respondendo com dados reais.
