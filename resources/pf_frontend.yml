@@ -52,7 +52,7 @@ resources:
       # conecta via o Postgres role do SP (criado no pf_setup) + generate_database_credential.
 
       # Config do App definida AQUI (não no app.yaml) para poder usar referências
-      # automáticas do bundle: DASHBOARD_ID vem de ${resources.dashboards.pf_dashboard.dashboard_id},
+      # automáticas do bundle: DASHBOARD_ID vem de ${resources.dashboards.pf_dashboard.id},
       # e os IDs de recursos vêm por referências automáticas do bundle.
       config:
         command:
@@ -66,7 +66,7 @@ resources:
           - "8000"
         env:
           - name: DASHBOARD_ID
-            value: ${resources.dashboards.pf_dashboard.dashboard_id}
+            value: ${resources.dashboards.pf_dashboard.id}
           - name: SQL_WAREHOUSE_ID
             value_from: sql-warehouse
           - name: INGEST_JOB_ID
