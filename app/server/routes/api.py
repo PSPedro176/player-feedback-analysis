@@ -3,7 +3,7 @@ import time
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..config import (
     GAMES_CURRENT_TABLE,
@@ -205,8 +205,9 @@ def _genie_call(fn, *args):
     except genie.GenieNotConfigured as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:  # noqa: BLE001
-        print(f"[genie] erro: {e}")
-        raise HTTPException(status_code=502, detail=f"Erro ao consultar o Genie: {e}")
+        # Detalhe do erro só no log do servidor; o cliente recebe mensagem genérica.
+        print(f"[genie] erro: {e!r}")
+        raise HTTPException(status_code=502, detail="Erro ao consultar o Genie. Tente novamente.")
 
 
 @router.get("/genie/space")
@@ -215,8 +216,8 @@ def genie_space():
 
 
 class GenieAsk(BaseModel):
-    question: str
-    conversation_id: str | None = None
+    question: str = Field(max_length=1000)
+    conversation_id: str | None = Field(default=None, max_length=200)
 
 
 @router.post("/genie/ask")

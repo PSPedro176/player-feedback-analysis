@@ -140,9 +140,9 @@ def _serialize(space_id: str, msg: GenieMessage) -> dict:
         "error": None,
     }
     if msg.status in (MessageStatus.FAILED, MessageStatus.CANCELLED):
-        out["error"] = (msg.error.error if msg.error and msg.error.error else None) or (
-            "O Genie não conseguiu responder a esta pergunta."
-        )
+        if msg.error and msg.error.error:
+            print(f"[genie] mensagem {msg.message_id} falhou: {msg.error.error!r}")
+        out["error"] = "O Genie não conseguiu responder a esta pergunta."
     if msg.status == MessageStatus.QUERY_RESULT_EXPIRED:
         out["error"] = "O resultado da consulta expirou — pergunte novamente."
 
@@ -169,8 +169,8 @@ def _serialize(space_id: str, msg: GenieMessage) -> dict:
             )
             out.update(_rows(res.statement_response))
         except Exception as e:  # noqa: BLE001
-            print(f"[genie] falha ao buscar resultado da query: {e}")
-            out["error"] = out["error"] or f"Não foi possível carregar o resultado da consulta: {e}"
+            print(f"[genie] falha ao buscar resultado da query: {e!r}")
+            out["error"] = out["error"] or "Não foi possível carregar o resultado da consulta."
     return out
 
 

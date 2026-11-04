@@ -104,7 +104,6 @@ resources:
       catalog: ${var.catalog}
       schema: ${var.schema}
       continuous: false
-      development: true
       libraries:
         - file:
             path: ../src/enrich_reviews.py
