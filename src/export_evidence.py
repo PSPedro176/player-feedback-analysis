@@ -251,8 +251,9 @@ for job_name, job_id in job_ids.items():
 
     runs = w.jobs.list_runs(job_id=int(job_id), limit=10)
     for run in islice(runs, 10):
-        duration_ms = run.execution_duration
-        if duration_ms is None and run.start_time and run.end_time:
+        # execution_duration é 0 em jobs multi-task; run_duration cobre o run inteiro.
+        duration_ms = run.run_duration or run.execution_duration or None
+        if not duration_ms and run.start_time and run.end_time:
             duration_ms = run.end_time - run.start_time
         job_runs.append({
             "job_name": job_name,
