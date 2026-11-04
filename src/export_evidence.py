@@ -137,7 +137,6 @@ write_dataset("classification_distribution", classification_distribution)
 sample_reviews = rows_from_df(spark.sql(f"""
     WITH ranked AS (
         SELECT
-            sha2(review_id, 256) AS review_id_hash,
             game,
             at,
             score,
@@ -154,7 +153,7 @@ sample_reviews = rows_from_df(spark.sql(f"""
         FROM `{catalog}`.`{schema}`.reviews_enriched
         WHERE content IS NOT NULL
     )
-    SELECT review_id_hash, game, at, score, sentiment,
+    SELECT game, at, score, sentiment,
            bug_report, pricing, game_balance, toxicity, visuals, community, opinion,
            review_text
     FROM ranked
@@ -223,7 +222,7 @@ ai_stats = rows_from_df(spark.sql(f"""
 write_dataset("ai_inference_stats", ai_stats)
 
 ai_samples = rows_from_df(spark.sql(f"""
-    SELECT source, game, sha2(record_key, 256) AS record_key_hash, model, prompt_version,
+    SELECT source, game, model, prompt_version,
            substring(raw_response, 1, 1000) AS raw_response,
            error_message, inferred_at
     FROM `{catalog}`.`{schema}`.ai_inference_log
